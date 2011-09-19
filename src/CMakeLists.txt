@@ -1,0 +1,1 @@
+DECLARE_ZORBA_MODULE (URI "http://www.zorba-xquery.com/modules/xqxq" VERSION 1.0 FILE "xqxq.xq")
