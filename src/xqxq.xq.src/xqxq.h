@@ -6,10 +6,10 @@
 #include <zorba/zorba.h>
 #include <zorba/external_module.h>
 #include <zorba/function.h>
+#include <zorba/dynamic_context.h>
 
 #define XQXQ_MODULE_NAMESPACE "http://www.zorba-xquery.com/modules/xqxq"
 #define XQXQ_QUERY_KEY_NAMESPACE "http://www.zorba-xquery.com/modules/xqxq/querykey"
-#define XQXQ_DYNAMIC_CONTEXT_NAMESPACE "http://www.zorba-xquery.com/modules/xqxq/dynamiccontext"
 
 namespace zorba { namespace xqxq {
   
@@ -25,15 +25,14 @@ namespace zorba { namespace xqxq {
       ExternalFunction* theIsContextItemUnboundFunction;
       ExternalFunction* theGetUnboundVariablesFunction;
       ExternalFunction* theIsUpdatingFunction;
-      ExternalFunction* theIsSideEffectingFunction;
+      ExternalFunction* theIsSequentialFunction;
       ExternalFunction* theBindContextItemFunction;
       ExternalFunction* theBindContextPositionFunction;
       ExternalFunction* theBindContextSizeFunction;
       ExternalFunction* theBindVariableFunction;
       ExternalFunction* theEvaluateFunction;
       ExternalFunction* theEvaluateUpdatingFunction;
-      ExternalFunction* theEvaluateAndApplyFunction;
-      ExternalFunction* theEvaluateSideEffectingFunction;
+      ExternalFunction* theEvaluateSequentialFunction;
       ExternalFunction* theDeleteQueryFunction;
 
     public:
@@ -65,21 +64,20 @@ namespace zorba { namespace xqxq {
       QueryMap_t* queryMap;
   };
 
+
   class XQXQFunction : public ContextualExternalFunction
   {
     protected:
       const XQXQModule* theModule;
-
-      
-
-      static void
-        throwError(const char*, const std::string);
 
        String
          getOneStringArgument(const Arguments_t&, int) const;
 
        Item
          getItemArgument(const Arguments_t&, int) const;
+
+      static void
+        throwError(const char*, const std::string);
 
     public:
 
@@ -89,6 +87,21 @@ namespace zorba { namespace xqxq {
 
       virtual String
         getURI() const;
+  };
+
+  class QueryMap{
+    private:
+      typedef std::map<std::string, XQuery_t> QueryMap_t;
+      QueryMap_t* queryMap;
+
+    public:
+      QueryMap();
+      bool 
+        storeQuery(String, XQuery_t);
+      XQuery_t
+        getQuery(String);
+      bool 
+        deleteQuery(String);
   };
 
   class PrepareMainModuleFunction : public XQXQFunction{
@@ -106,7 +119,7 @@ namespace zorba { namespace xqxq {
                  const zorba::DynamicContext*) const;
 
     protected:
-       static Item
+       static String
          getKey(std::string);
 
   };
@@ -126,7 +139,7 @@ namespace zorba { namespace xqxq {
                  const zorba::DynamicContext*) const;
 
     protected:
-       static Item
+       static String
          getKey(std::string);
 
   };
@@ -177,44 +190,14 @@ namespace zorba { namespace xqxq {
 
   };
 
-  class IsSideEffectingFunction : public XQXQFunction{
+  class IsSequentialFunction : public XQXQFunction{
     public:
-      IsSideEffectingFunction(const XQXQModule* aModule) : XQXQFunction(aModule) {}
+      IsSequentialFunction(const XQXQModule* aModule) : XQXQFunction(aModule) {}
 
-      virtual ~IsSideEffectingFunction() {}
+      virtual ~IsSequentialFunction() {}
 
       virtual zorba::String
-        getLocalName() const {return "is-side-effecting"; }
-
-      virtual zorba::ItemSequence_t
-        evaluate(const Arguments_t&,
-                 const zorba::StaticContext*,
-                 const zorba::DynamicContext*) const;
-  };
-
-  class CreateDynamicContextFunction : public XQXQFunction{
-    public:
-      CreateDynamicContextFunction(const XQXQModule* aModule) : XQXQFunction(aModule) {}
-
-      virtual ~CreateDynamicContextFunction() {}
-
-      virtual zorba::String
-        getLocalName() const {return "create-dynamic-context"; }
-
-      virtual zorba::ItemSequence_t
-        evaluate(const Arguments_t&,
-                 const zorba::StaticContext*,
-                 const zorba::DynamicContext*) const;
-  };
-
-  class DeleteDynamicContextFunction : public XQXQFunction{
-    public:
-      DeleteDynamicContextFunction(const XQXQModule* aModule) : XQXQFunction(aModule) {}
-
-      virtual ~DeleteDynamicContextFunction() {}
-
-      virtual zorba::String
-        getLocalName() const {return "delete-dynamic-context"; }
+        getLocalName() const {return "is-sequential"; }
 
       virtual zorba::ItemSequence_t
         evaluate(const Arguments_t&,
@@ -312,29 +295,14 @@ namespace zorba { namespace xqxq {
                  const zorba::DynamicContext*) const;
   };
 
-  class EvaluateAndApplyFunction : public XQXQFunction{
+  class EvaluateSequentialFunction : public XQXQFunction{
     public:
-      EvaluateAndApplyFunction(const XQXQModule* aModule) : XQXQFunction(aModule) {}
+      EvaluateSequentialFunction(const XQXQModule* aModule) : XQXQFunction(aModule) {}
 
-      virtual ~EvaluateAndApplyFunction() {}
+      virtual ~EvaluateSequentialFunction() {}
 
       virtual zorba::String
-        getLocalName() const {return "evaluate-updating-and-apply"; }
-
-      virtual zorba::ItemSequence_t
-        evaluate(const Arguments_t&,
-                 const zorba::StaticContext*,
-                 const zorba::DynamicContext*) const;
-  };
-
-  class EvaluateSideEffectingFunction : public XQXQFunction{
-    public:
-      EvaluateSideEffectingFunction(const XQXQModule* aModule) : XQXQFunction(aModule) {}
-
-      virtual ~EvaluateSideEffectingFunction() {}
-
-      virtual zorba::String
-        getLocalName() const {return "evaluate-side-effecting"; }
+        getLocalName() const {return "evaluate-sequential"; }
 
       virtual zorba::ItemSequence_t
         evaluate(const Arguments_t&,

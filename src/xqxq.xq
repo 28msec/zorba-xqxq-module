@@ -13,7 +13,7 @@ declare option ver:module-version "1.0";
  : module -- as a string, a URI, or an integer
  :)
 declare %ann:sequential function xqxq:prepare-main-module($main-module-text as xs:string) as 
-  xs:QName external;
+  xs:string external;
 
 (:~
  : compile the input string as a library module, on an empty static and
@@ -27,7 +27,7 @@ declare %ann:sequential function xqxq:prepare-library-module($library-module-tex
 (:~
  :
  :)
-declare function xqxq:context-item-unbound($query-key as xs:QName) as
+declare function xqxq:context-item-unbound($query-key as xs:string) as
   xs:string  external;
 
 (:~
@@ -39,67 +39,60 @@ declare function xqxq:unbound-variables($query-key as xs:string) as
 (:~
  :
  :)
-declare function xqxq:is-updating($query-key as xs:QName) as
+declare function xqxq:is-updating($query-key as xs:string) as
   xs:boolean external;  
 
 (:~
  :
  :)
-declare function xqxq:is-side-effecting($query-key as xs:QName) as
+declare function xqxq:is-sequential($query-key as xs:string) as
   xs:boolean external;
   
 (:~
  :
  :)
-declare %ann:sequential function xqxq:bind-context-item($query-key as xs:QName,
+declare %ann:sequential function xqxq:bind-context-item($query-key as xs:string,
   $dot as item()) as empty-sequence() external ;
 
 (:~
  :
  :)
 declare %ann:sequential function xqxq:bind-context-position($query-key as
-  xs:QName, $position as xs:integer) as empty-sequence() external ;
+  xs:string, $position as xs:integer) as empty-sequence() external ;
 
 (:~
  :
  :)
-declare %ann:sequential function xqxq:bind-context-size($query-key as xs:QName,
+declare %ann:sequential function xqxq:bind-context-size($query-key as xs:string,
   $last as xs:integer) as empty-sequence() external ;
 
 (:~
  :
  :)
-declare %ann:sequential function xqxq:bind-variable($query-key as xs:QName,
+declare %ann:sequential function xqxq:bind-variable($query-key as xs:string,
   $var as xs:QName, $value as item()*) as empty-sequence() external ;
 
 
 (:~
  : in case the main expression of the module is a simple expression 
  :)
-declare function xqxq:evaluate($query-key as xs:QName) as item()* external;
+declare function xqxq:evaluate($query-key as xs:string) as item()* external;
 
 (:~ 
  : in case the main expression of the module is an updating
  : expression 
  :)
-declare updating function xqxq:evaluate-updating($query-key as xs:QName) external;
-
-(:~ 
- : in case the main expression of the module is an updating
- : expression, get the PUL and then apply it 
- :)
-declare %ann:sequential function xqxq:evaluate-updating-and-apply($query-key as 
-  xs:QName) as empty-sequence() external;
+declare updating function xqxq:evaluate-updating($query-key as xs:string) external;
 
 (:~ 
  : in case the main expression of the module is a sideffecting
  : expression 
  :)
-declare %ann:sequential function xqxq:evaluate-side-effecting($query-key as
-  xs:QName) as item()* external;
+declare %ann:sequential function xqxq:evaluate-sequential($query-key as
+  xs:string) as item()* external;
   
 (:~
  :
  :)
-declare %ann:sequential function xqxq:delete-query($query-key as xs:QName) as
+declare %ann:sequential function xqxq:delete-query($query-key as xs:string) as
   empty-sequence() external;
