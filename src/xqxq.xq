@@ -27,13 +27,22 @@ declare %ann:sequential function xqxq:prepare-library-module($library-module-tex
 (:~
  :
  :)
-declare function xqxq:context-item-unbound($query-key as xs:string) as
-  xs:string  external;
+declare function xqxq:is-bound-context-item($query-key as xs:string) 
+  as xs:boolean  external;
+  
 
 (:~
  :
  :)
-declare function xqxq:unbound-variables($query-key as xs:string) as
+declare function xqxq:is-bound-variable($query-key as xs:string, $var-name as 
+  xs:QName) as xs:boolean  external;
+
+
+
+(:~
+ :
+ :)
+declare function xqxq:get-external-variables($query-key as xs:string) as
   xs:QName* external ;
   
 (:~

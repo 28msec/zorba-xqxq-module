@@ -19,13 +19,14 @@ namespace zorba { namespace xqxq {
   ItemFactory* XQXQModule::theFactory = 0;
 
   XQXQModule::XQXQModule()
-    : thePrepareMainModuleFunction(0), theIsContextItemUnboundFunction(0), 
-      theGetUnboundVariablesFunction(0), theIsUpdatingFunction(0), 
+    : thePrepareMainModuleFunction(0), theIsBoundVariableFunction(0), 
+      theGetExternalVariablesFunction(0), theIsUpdatingFunction(0), 
       theIsSequentialFunction(0), theBindContextItemFunction(0),
       theBindContextPositionFunction(0), theBindContextSizeFunction(0), 
       theBindVariableFunction(0), theEvaluateFunction(0), 
       theEvaluateUpdatingFunction(0), thePrepareLibraryModuleFunction(0), 
-      theEvaluateSequentialFunction(0), theDeleteQueryFunction(0)
+      theEvaluateSequentialFunction(0), theDeleteQueryFunction(0),
+      theIsBoundContextItemFunction(0)
   {
      queryMap = new QueryMap_t();
   }
@@ -45,16 +46,22 @@ namespace zorba { namespace xqxq {
         return thePrepareLibraryModuleFunction;
         } 
       }
-      else if(localName == "context-item-unbound"){
-        if(!theIsContextItemUnboundFunction){
-          theIsContextItemUnboundFunction = new IsContextItemUnboundFunction(this);
-        return theIsContextItemUnboundFunction;
+      else if(localName == "is-bound-context-item"){
+        if(!theIsBoundContextItemFunction){
+          theIsBoundContextItemFunction = new IsBoundContextItemFunction(this);
+        return theIsBoundContextItemFunction;
         }
       }
-      else if(localName == "unbound-variables"){
-        if(!theGetUnboundVariablesFunction){
-          theGetUnboundVariablesFunction = new GetUnboundVariablesFunction(this);
-        return theGetUnboundVariablesFunction;
+      else if(localName == "is-bound-variable"){
+        if(!theIsBoundVariableFunction){
+          theIsBoundVariableFunction = new IsBoundVariableFunction(this);
+        return theIsBoundVariableFunction;
+        }
+      }
+      else if(localName == "get-external-variables"){
+        if(!theGetExternalVariablesFunction){
+          theGetExternalVariablesFunction = new GetExternalVariablesFunction(this);
+        return theGetExternalVariablesFunction;
         }
       }
       else if(localName == "is-updating"){
@@ -359,25 +366,86 @@ namespace zorba { namespace xqxq {
     return key;
   }
 
-
   /*******************************************************************************************
   *******************************************************************************************/
   zorba::ItemSequence_t
-    IsContextItemUnboundFunction::evaluate(
+    IsBoundContextItemFunction::evaluate(
       const Arguments_t& aArgs,
       const zorba::StaticContext* aSctx,
       const zorba::DynamicContext* aDctx) const 
   {
 
-    XQXQFunction::throwError("ImplementationError", "This function is not implemented yet");
+    String lQueryID = XQXQFunction::getOneStringArgument(aArgs, 0);
 
-    return ItemSequence_t(new EmptySequence());
+    void* lMap;
+    if(!aDctx->getExternalFunctionParam("querymap", lMap))
+    {
+      XQXQFunction::throwError("QueryMapNotFound", "There are no queries, be sure to call prepare-main-module first.");
+    }
+    QueryMap* lQueryMap = static_cast<QueryMap*>(lMap);
+
+    XQuery_t lQuery;
+    if(!(lQuery = lQueryMap->getQuery(lQueryID)))
+      XQXQFunction::throwError("NoQueryMatch","String identifying query does not exists.");
+
+    Item lContextItem;
+
+    //Remove try when bug ##### in launchpad is solved
+    bool lIsContextItemBound;
+    try
+    {
+      lIsContextItemBound = lQuery->getDynamicContext()->getContextItem(lContextItem);
+    }
+    catch (ZorbaException)
+    {
+      lIsContextItemBound = false;
+    }
+    return ItemSequence_t(new SingletonItemSequence(Zorba::getInstance(0)->getItemFactory()->createBoolean(lIsContextItemBound)));
   }
 
   /*******************************************************************************************
   *******************************************************************************************/
   zorba::ItemSequence_t
-    GetUnboundVariablesFunction::evaluate(
+    IsBoundVariableFunction::evaluate(
+      const Arguments_t& aArgs,
+      const zorba::StaticContext* aSctx,
+      const zorba::DynamicContext* aDctx) const 
+  {
+    String lQueryID = XQXQFunction::getOneStringArgument(aArgs, 0);
+
+    void* lMap;
+    if(!aDctx->getExternalFunctionParam("querymap", lMap))
+    {
+      XQXQFunction::throwError("QueryMapNotFound", "There are no queries, be sure to call prepare-main-module first.");
+    }
+    QueryMap* lQueryMap = static_cast<QueryMap*>(lMap);
+
+    XQuery_t lQuery;
+    if(!(lQuery = lQueryMap->getQuery(lQueryID)))
+      XQXQFunction::throwError("NoQueryMatch","String identifying query does not exists.");
+
+    Item lVarQName = XQXQFunction::getItemArgument(aArgs, 1);
+
+    Item lVar;
+    Iterator_t lVarIter;
+
+    bool lIsBoundVariable;
+    try
+    {
+      lIsBoundVariable = lQuery->getDynamicContext()->getVariable(lVarQName.getNamespace(),lVarQName.getLocalName(), lVar, lVarIter);
+    }
+    catch (ZorbaException)
+    {
+      lIsBoundVariable = false;
+    }
+
+    return ItemSequence_t(new SingletonItemSequence(Zorba::getInstance(0)->getItemFactory()->createBoolean(lIsBoundVariable)));
+  }
+
+  /*******************************************************************************************
+  *******************************************************************************************/
+  zorba::ItemSequence_t
+    GetExternalVariablesFunction::evaluate(
       const Arguments_t& aArgs,
       const zorba::StaticContext* aSctx,
       const zorba::DynamicContext* aDctx) const 

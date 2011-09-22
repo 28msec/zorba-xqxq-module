@@ -22,8 +22,9 @@ namespace zorba { namespace xqxq {
 
       ExternalFunction* thePrepareMainModuleFunction;
       ExternalFunction* thePrepareLibraryModuleFunction;
-      ExternalFunction* theIsContextItemUnboundFunction;
-      ExternalFunction* theGetUnboundVariablesFunction;
+      ExternalFunction* theGetExternalVariablesFunction;
+      ExternalFunction* theIsBoundContextItemFunction;
+      ExternalFunction* theIsBoundVariableFunction;
       ExternalFunction* theIsUpdatingFunction;
       ExternalFunction* theIsSequentialFunction;
       ExternalFunction* theBindContextItemFunction;
@@ -144,14 +145,14 @@ namespace zorba { namespace xqxq {
 
   };
 
-  class IsContextItemUnboundFunction : public XQXQFunction{
+  class IsBoundContextItemFunction : public XQXQFunction{
     public:
-      IsContextItemUnboundFunction(const XQXQModule* aModule) : XQXQFunction(aModule) {}
+      IsBoundContextItemFunction(const XQXQModule* aModule) : XQXQFunction(aModule) {}
 
-      virtual ~IsContextItemUnboundFunction(){}
+      virtual ~IsBoundContextItemFunction(){}
 
       virtual zorba::String
-        getLocalName() const { return "context-item-unbound"; }
+        getLocalName() const { return "is-bound-context-item"; }
 
       virtual zorba::ItemSequence_t
         evaluate(const Arguments_t&,
@@ -159,14 +160,29 @@ namespace zorba { namespace xqxq {
                  const zorba::DynamicContext*) const;
   };
 
-  class GetUnboundVariablesFunction : public XQXQFunction{
+  class IsBoundVariableFunction : public XQXQFunction{
     public:
-      GetUnboundVariablesFunction(const XQXQModule* aModule) : XQXQFunction(aModule) {}
+      IsBoundVariableFunction(const XQXQModule* aModule) : XQXQFunction(aModule) {}
 
-      virtual ~GetUnboundVariablesFunction() {}
+      virtual ~IsBoundVariableFunction(){}
 
       virtual zorba::String
-        getLocalName() const {return "unbound-variables"; }
+        getLocalName() const { return "is-bound-variable"; }
+
+      virtual zorba::ItemSequence_t
+        evaluate(const Arguments_t&,
+                 const zorba::StaticContext*,
+                 const zorba::DynamicContext*) const;
+  };
+
+  class GetExternalVariablesFunction : public XQXQFunction{
+    public:
+      GetExternalVariablesFunction(const XQXQModule* aModule) : XQXQFunction(aModule) {}
+
+      virtual ~GetExternalVariablesFunction() {}
+
+      virtual zorba::String
+        getLocalName() const {return "get-external-variables"; }
 
       virtual zorba::ItemSequence_t
         evaluate(const Arguments_t&,
