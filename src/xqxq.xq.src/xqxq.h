@@ -9,7 +9,6 @@
 #include <zorba/dynamic_context.h>
 
 #define XQXQ_MODULE_NAMESPACE "http://www.zorba-xquery.com/modules/xqxq"
-#define XQXQ_QUERY_KEY_NAMESPACE "http://www.zorba-xquery.com/modules/xqxq/querykey"
 
 namespace zorba { namespace xqxq {
   
@@ -60,9 +59,6 @@ namespace zorba { namespace xqxq {
 
         return theFactory;
       }
-
-      typedef std::map<std::string, XQuery_t> QueryMap_t;
-      QueryMap_t* queryMap;
   };
 
 

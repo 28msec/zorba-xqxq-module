@@ -21,8 +21,7 @@ declare %ann:sequential function xqxq:prepare-main-module($main-module-text as x
  : module or throws an error if it does not compile
  :)
 declare %ann:sequential function xqxq:prepare-library-module($library-module-text as xs:string) as 
-  xs:QName external;
-
+  empty-sequence() external ;
 
 (:~
  :

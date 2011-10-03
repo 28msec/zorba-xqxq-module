@@ -6,6 +6,7 @@
 #include <zorba\user_exception.h>
 #include <zorba\vector_item_sequence.h>
 #include <zorba\serializer.h>
+#include <zorba\xquery.h>
 
 #include <vector>
 
@@ -28,7 +29,7 @@ namespace zorba { namespace xqxq {
       theEvaluateSequentialFunction(0), theDeleteQueryFunction(0),
       theIsBoundContextItemFunction(0)
   {
-     queryMap = new QueryMap_t();
+     
   }
 
   zorba::ExternalFunction*
@@ -134,13 +135,6 @@ namespace zorba { namespace xqxq {
   XQXQModule::~XQXQModule()
   {
     delete thePrepareMainModuleFunction;
-
-    for (QueryMap_t::const_iterator lIter = queryMap->begin();
-      lIter != queryMap->end(); ++lIter)
-    {
-      delete lIter->second;
-    }
-    queryMap->clear();
   }
 
   /*******************************************************************************************
@@ -254,10 +248,10 @@ namespace zorba { namespace xqxq {
     DynamicContext* lDynCtx = const_cast<DynamicContext*>(aDctx);
     void* lMap;
     QueryMap* lQueryMap;
-    if(!lDynCtx->getExternalFunctionParam("querymap", lMap))
+    if(!lDynCtx->getExternalFunctionParam("xqxqQueryMap", lMap))
     {
       lQueryMap = new QueryMap();
-      lDynCtx->addExternalFunctionParam("querymap", lQueryMap);     
+      lDynCtx->addExternalFunctionParam("xqxqQueryMap", lQueryMap);     
     }
     else
     {
@@ -311,10 +305,10 @@ namespace zorba { namespace xqxq {
     DynamicContext* lDynCtx = const_cast<DynamicContext*>(aDctx);
     void* lMap;
     QueryMap* lQueryMap;
-    if(!lDynCtx->getExternalFunctionParam("querymap", lMap))
+    if(!lDynCtx->getExternalFunctionParam("xqxqQueryMap", lMap))
     {
       lQueryMap = new QueryMap();
-      lDynCtx->addExternalFunctionParam("querymap", lQueryMap);     
+      lDynCtx->addExternalFunctionParam("xqxqQueryMap", lQueryMap);     
     }
     else
     {
@@ -338,14 +332,7 @@ namespace zorba { namespace xqxq {
       return ItemSequence_t(new SingletonItemSequence(lErrorQName));
     }
     
-    String lKey = getKey(lQueryString);
-    
-    if(!lQueryMap->storeQuery(lKey, lQuery))
-    {
-      throwError("QueryAlreadyCreated", "This Query has already been created.");
-    }
-    
-    return ItemSequence_t(new SingletonItemSequence(XQXQModule::getItemFactory()->createString(lKey)));
+    return ItemSequence_t(new EmptySequence());
   }
 
   String 
@@ -378,7 +365,7 @@ namespace zorba { namespace xqxq {
     String lQueryID = XQXQFunction::getOneStringArgument(aArgs, 0);
 
     void* lMap;
-    if(!aDctx->getExternalFunctionParam("querymap", lMap))
+    if(!aDctx->getExternalFunctionParam("xqxqQueryMap", lMap))
     {
       XQXQFunction::throwError("QueryMapNotFound", "There are no queries, be sure to call prepare-main-module first.");
     }
@@ -396,9 +383,12 @@ namespace zorba { namespace xqxq {
     {
       lIsContextItemBound = lQuery->getDynamicContext()->getContextItem(lContextItem);
     }
-    catch (ZorbaException)
+    catch (ZorbaException& ze)
     {
-      lIsContextItemBound = false;
+      if (!strcmp("XPDY0002",ze.diagnostic().qname().localname()))
+        lIsContextItemBound = false;
+      else
+        XQXQFunction::throwError(ze.diagnostic().qname().localname(), ze.diagnostic().message()); 
     }
     return ItemSequence_t(new SingletonItemSequence(Zorba::getInstance(0)->getItemFactory()->createBoolean(lIsContextItemBound)));
   }
@@ -414,7 +404,7 @@ namespace zorba { namespace xqxq {
     String lQueryID = XQXQFunction::getOneStringArgument(aArgs, 0);
 
     void* lMap;
-    if(!aDctx->getExternalFunctionParam("querymap", lMap))
+    if(!aDctx->getExternalFunctionParam("xqxqQueryMap", lMap))
     {
       XQXQFunction::throwError("QueryMapNotFound", "There are no queries, be sure to call prepare-main-module first.");
     }
@@ -434,9 +424,13 @@ namespace zorba { namespace xqxq {
     {
       lIsBoundVariable = lQuery->getDynamicContext()->getVariable(lVarQName.getNamespace(),lVarQName.getLocalName(), lVar, lVarIter);
     }
-    catch (ZorbaException)
+    catch (ZorbaException& ze)
     {
-      lIsBoundVariable = false;
+      
+      if (!strcmp("XPDY0002",ze.diagnostic().qname().localname()))
+        lIsBoundVariable = false;
+      else
+        XQXQFunction::throwError(ze.diagnostic().qname().localname(), ze.diagnostic().message());  
     }
 
     return ItemSequence_t(new SingletonItemSequence(Zorba::getInstance(0)->getItemFactory()->createBoolean(lIsBoundVariable)));
@@ -465,7 +459,7 @@ namespace zorba { namespace xqxq {
     String lQueryID = XQXQFunction::getOneStringArgument(aArgs, 0);
 
     void* lMap;
-    if(!aDctx->getExternalFunctionParam("querymap", lMap))
+    if(!aDctx->getExternalFunctionParam("xqxqQueryMap", lMap))
     {
       XQXQFunction::throwError("QueryMapNotFound", "There are no queries, be sure to call prepare-main-module first.");
     }
@@ -486,9 +480,20 @@ namespace zorba { namespace xqxq {
       const zorba::StaticContext* aSctx,
       const zorba::DynamicContext* aDctx) const 
   {
-    XQXQFunction::throwError("ImplementationError", "This function is not implemented yet");
+    String lQueryID = XQXQFunction::getOneStringArgument(aArgs, 0);
 
-    return ItemSequence_t(new EmptySequence());
+    void* lMap;
+    if(!aDctx->getExternalFunctionParam("xqxqQueryMap", lMap))
+    {
+      XQXQFunction::throwError("QueryMapNotFound", "There are no queries, be sure to call prepare-main-module first.");
+    }
+    QueryMap* lQueryMap = static_cast<QueryMap*>(lMap);
+
+    XQuery_t lQuery;
+    if(!(lQuery = lQueryMap->getQuery(lQueryID)))
+      XQXQFunction::throwError("NoQueryMatch","String identifying query does not exists.");
+
+    return ItemSequence_t(new SingletonItemSequence(Zorba::getInstance(0)->getItemFactory()->createBoolean(lQuery->isSequential())));
   }
 
   /*******************************************************************************************
@@ -502,7 +507,7 @@ namespace zorba { namespace xqxq {
     String lQueryID = XQXQFunction::getOneStringArgument(aArgs,0);
 
     void* lMap;
-    if(!aDctx->getExternalFunctionParam("querymap", lMap))
+    if(!aDctx->getExternalFunctionParam("xqxqQueryMap", lMap))
     {
       XQXQFunction::throwError("QueryMapNotFound", "There are no queries, be sure to call prepare-main-module first.");
     }
@@ -557,7 +562,7 @@ namespace zorba { namespace xqxq {
     String lQueryID = XQXQFunction::getOneStringArgument(aArgs,0);
 
     void* lMap;
-    if(!aDctx->getExternalFunctionParam("querymap", lMap))
+    if(!aDctx->getExternalFunctionParam("xqxqQueryMap", lMap))
     {
       XQXQFunction::throwError("QueryMapNotFound", "There are no queries, be sure to call prepare-main-module first.");
     }
@@ -587,7 +592,7 @@ namespace zorba { namespace xqxq {
     String lQueryID = XQXQFunction::getOneStringArgument(aArgs,0);
 
     void* lMap;
-    if(!aDctx->getExternalFunctionParam("querymap", lMap))
+    if(!aDctx->getExternalFunctionParam("xqxqQueryMap", lMap))
     {
       XQXQFunction::throwError("QueryMapNotFound", "There are no queries, be sure to call prepare-main-module first.");
     }
@@ -600,11 +605,10 @@ namespace zorba { namespace xqxq {
     if(lQuery->isUpdating())
       XQXQFunction::throwError("QueryIsUpdating", "Executing Query shouldn't be updating.");
     
-    //Uncomment as soon as isSequential is designed
-    /*
+    
     if(lQuery->isSequential())
       XQXQFunction::throwError("QueryIsSequential", "Executing Query shouldn't be sequential.");
-    */
+    
 
     std::vector<Item> lItemVector;
 
@@ -630,24 +634,21 @@ namespace zorba { namespace xqxq {
     String lQueryID = XQXQFunction::getOneStringArgument(aArgs,0);
 
     void* lMap;
-    if(!aDctx->getExternalFunctionParam("querymap", lMap))
+    if(!aDctx->getExternalFunctionParam("xqxqQueryMap", lMap))
     {
       XQXQFunction::throwError("QueryMapNotFound", "There are no queries, be sure to call prepare-main-module first.");
     }
-    QueryMap* lQueryMap = static_cast<QueryMap*>(lMap);
+    QueryMap* lQueryMap = dynamic_cast<QueryMap*>((QueryMap*)lMap);
 
     XQuery_t lQuery;
     if(!(lQuery = lQueryMap->getQuery(lQueryID)))
       XQXQFunction::throwError("NoQueryMatch","String identifying query does not exists.");
 
-    Item item;
-    lQuery->getDynamicContext()->getContextItem(item);
-
     //Uncomment as soon as isSequential is designed
-    /*
+
     if(lQuery->isSequential())
       XQXQFunction::throwError("QueryIsSequential", "Executing Query shouldn't be sequential.");
-    */
+
 
     if(!lQuery->isUpdating())
     {
@@ -669,7 +670,7 @@ namespace zorba { namespace xqxq {
     String lQueryID = XQXQFunction::getOneStringArgument(aArgs,0);
 
     void* lMap;
-    if(!aDctx->getExternalFunctionParam("querymap", lMap))
+    if(!aDctx->getExternalFunctionParam("xqxqQueryMap", lMap))
     {
       XQXQFunction::throwError("QueryMapNotFound", "There are no queries, be sure to call prepare-main-module first.");
     }
@@ -688,10 +689,10 @@ namespace zorba { namespace xqxq {
     }
 
     //Uncomment as soon as isSequential is designed
-    /*
+
     if(!lQuery->isSequential())
       XQXQFunction::throwError("QueryNotSequential", "Executing Query should be sequential.");
-    */
+
 
     std::vector<Item> lItemVector;
 
@@ -717,7 +718,7 @@ namespace zorba { namespace xqxq {
     String lQueryID = XQXQFunction::getOneStringArgument(aArgs,0);
 
     void* lMap;
-    if(!aDctx->getExternalFunctionParam("querymap", lMap))
+    if(!aDctx->getExternalFunctionParam("xqxqQueryMap", lMap))
     {
       XQXQFunction::throwError("QueryMapNotFound", "There are no queries, be sure to call prepare-main-module first.");
     }
