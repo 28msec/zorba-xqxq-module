@@ -86,11 +86,11 @@ namespace zorba { namespace xqxq {
         getURI() const;
   };
 
-  class QueryMap{
+  class QueryMap : public ExternalFunctionParameter{
     private:
       typedef std::map<std::string, XQuery_t> QueryMap_t;
       QueryMap_t* queryMap;
-
+    
     public:
       QueryMap();
       bool 
@@ -99,6 +99,20 @@ namespace zorba { namespace xqxq {
         getQuery(String);
       bool 
         deleteQuery(String);
+      virtual void 
+        destroy() throw()
+      {
+        if(queryMap)
+        {
+          for (QueryMap_t::const_iterator lIter = queryMap->begin();
+            lIter != queryMap->end(); ++lIter)
+            {
+              lIter->second->close();
+            }
+            queryMap->clear();
+        }
+        delete this;
+      };
   };
 
   class PrepareMainModuleFunction : public XQXQFunction{
