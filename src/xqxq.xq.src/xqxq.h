@@ -148,11 +148,6 @@ namespace zorba { namespace xqxq {
         evaluate(const Arguments_t&,
                  const zorba::StaticContext*,
                  const zorba::DynamicContext*) const;
-
-    protected:
-       static String
-         getKey(std::string);
-
   };
 
   class IsBoundContextItemFunction : public XQXQFunction{

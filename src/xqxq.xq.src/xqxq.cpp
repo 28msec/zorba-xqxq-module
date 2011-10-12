@@ -245,9 +245,8 @@ namespace zorba { namespace xqxq {
       const zorba::StaticContext* aSctx,
       const zorba::DynamicContext* aDctx) const 
   {
-
     DynamicContext* lDynCtx = const_cast<DynamicContext*>(aDctx);
-    
+   
     QueryMap* lQueryMap;
     if(!(lQueryMap = dynamic_cast<QueryMap*>(lDynCtx->getExternalFunctionParameter("xqxqQueryMap"))))
     {
@@ -276,7 +275,8 @@ namespace zorba { namespace xqxq {
     PrepareMainModuleFunction::getKey(std::string query)
   {
     unsigned int hash = 0;
-    for (unsigned int i = 0; i < query.length(); i++) 
+    unsigned int qLength = query.length();
+    for (unsigned int i = 0; i < qLength; i++) 
     {
       hash = hash * 31 + query.at(i);
     }
@@ -317,24 +317,6 @@ namespace zorba { namespace xqxq {
     }
     
     return ItemSequence_t(new EmptySequence());
-  }
-
-  String 
-    PrepareLibraryModuleFunction::getKey(std::string query)
-  {
-    unsigned int hash = 0;
-    for (unsigned int i = 0; i < query.length(); i++) 
-    {
-      hash = hash * 31 + query.at(i);
-    }
-    std::stringstream hashS;
-    hashS << hash;
-    
-    std::string key = hashS.str();
-
-    //Check if QNAME already in tree
-
-    return key;
   }
 
   /*******************************************************************************************
@@ -398,7 +380,12 @@ namespace zorba { namespace xqxq {
 
     Item lVarQName = XQXQFunction::getItemArgument(aArgs, 1);
 
-    Item lVar;
+    bool lIsBoundVariable = false;
+
+    if(lQuery->getDynamicContext()->isBoundVariable(lVarQName.getNamespace(),lVarQName.getLocalName()))
+      lIsBoundVariable = true;
+
+    /*Item lVar;
     Iterator_t lVarIter;
 
     bool lIsBoundVariable;
@@ -414,8 +401,9 @@ namespace zorba { namespace xqxq {
       else
         XQXQFunction::throwError(ze.diagnostic().qname().localname(), ze.diagnostic().message());  
     }
-
+     */
     return ItemSequence_t(new SingletonItemSequence(Zorba::getInstance(0)->getItemFactory()->createBoolean(lIsBoundVariable)));
+  
   }
 
   /*******************************************************************************************
@@ -426,9 +414,31 @@ namespace zorba { namespace xqxq {
       const zorba::StaticContext* aSctx,
       const zorba::DynamicContext* aDctx) const 
   {
-    XQXQFunction::throwError("ImplementationError", "This function is not implemented yet");
+    
+    String lQueryID = XQXQFunction::getOneStringArgument(aArgs, 0);
 
-    return ItemSequence_t(new EmptySequence());
+    QueryMap* lQueryMap;
+    if(!(lQueryMap= dynamic_cast<QueryMap*>(aDctx->getExternalFunctionParameter("xqxqQueryMap"))))
+    {
+      XQXQFunction::throwError("QueryMapNotFound", "There are no queries, be sure to call prepare-main-module first.");
+    }
+
+    XQuery_t lQuery;
+    if(!(lQuery = lQueryMap->getQuery(lQueryID)))
+      XQXQFunction::throwError("NoQueryMatch","String identifying query does not exists.");
+    
+    std::vector<Item> lVars;
+    lQuery->getDynamicContext()->getExternalVariables(lVars);
+
+    std::vector<Item>::iterator lIte = lVars.begin();
+    std::vector<Item>::iterator lEnd = lVars.end();
+    
+    for (; lIte != lEnd; ++lIte) 
+    {
+      std::cout << lIte->getNamespace();
+    }
+
+    return ItemSequence_t(new VectorItemSequence(lVars));
   }
   /*******************************************************************************************
   *******************************************************************************************/
@@ -586,7 +596,7 @@ namespace zorba { namespace xqxq {
 /*    
     if(lQuery->isSequential())
       XQXQFunction::throwError("QueryIsSequential", "Executing Query shouldn't be sequential.");
-*/  
+      */
 
     std::vector<Item> lItemVector;
 
@@ -625,7 +635,7 @@ namespace zorba { namespace xqxq {
 /*
     if(lQuery->isSequential())
       XQXQFunction::throwError("QueryIsSequential", "Executing Query shouldn't be sequential.");
-      */
+  */    
 
     if(!lQuery->isUpdating())
     {
@@ -668,7 +678,7 @@ namespace zorba { namespace xqxq {
 /*
     if(!lQuery->isSequential())
       XQXQFunction::throwError("QueryNotSequential", "Executing Query should be sequential.");
-      */
+  */    
 
     std::vector<Item> lItemVector;
 
