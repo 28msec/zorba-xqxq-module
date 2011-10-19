@@ -14,7 +14,5 @@ local:foo()
 variable $query-key2 := xqxq:prepare-main-module("insert node <child/> into /parent");  
 variable $is-sequential := xqxq:is-sequential($query-key1);
 variable $is-not-sequential := xqxq:is-sequential($query-key2); 
-xqxq:delete-query($query-key1);
-xqxq:delete-query($query-key2);
 $is-sequential, $is-not-sequential
  

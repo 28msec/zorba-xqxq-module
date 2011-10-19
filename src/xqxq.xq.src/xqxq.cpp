@@ -301,21 +301,23 @@ namespace zorba { namespace xqxq {
   {
     Zorba *lZorba = Zorba::getInstance(0);
     std::string lQueryString = getOneStringArgument(aArgs, 0).c_str();     
-    DiagnosticHandler* a = new DiagnosticHandler();
-    XQuery_t lQuery = lZorba->createQuery(a);   
-    lQuery->compile(lQueryString);
-    
-    std::stringstream streamRes;
+    //DiagnosticHandler* a = new DiagnosticHandler();
+    //XQuery_t lQuery = lZorba->createQuery(a);   
     try
     {
+    XQuery_t lQuery = lZorba->compileQuery(lQueryString);
+    std::stringstream streamRes;
+    
       streamRes << lQuery;
     }
     catch(ZorbaException* e)
     {
-      Item lErrorQName = XQXQModule::getItemFactory()->createQName(e->diagnostic().qname().ns(),e->diagnostic().qname().localname());
-      return ItemSequence_t(new SingletonItemSequence(lErrorQName));
+      XQXQFunction::throwError("LibraryModuleError", e->what());
     }
-    
+    catch(...)
+    {
+      XQXQFunction::throwError("LibraryModuleError", "LibraryModule does not compile.");
+    }
     return ItemSequence_t(new EmptySequence());
   }
 
@@ -380,12 +382,7 @@ namespace zorba { namespace xqxq {
 
     Item lVarQName = XQXQFunction::getItemArgument(aArgs, 1);
 
-    bool lIsBoundVariable = false;
-
-    if(lQuery->getDynamicContext()->isBoundVariable(lVarQName.getNamespace(),lVarQName.getLocalName()))
-      lIsBoundVariable = true;
-
-    /*Item lVar;
+    Item lVar;
     Iterator_t lVarIter;
 
     bool lIsBoundVariable;
@@ -401,7 +398,6 @@ namespace zorba { namespace xqxq {
       else
         XQXQFunction::throwError(ze.diagnostic().qname().localname(), ze.diagnostic().message());  
     }
-     */
     return ItemSequence_t(new SingletonItemSequence(Zorba::getInstance(0)->getItemFactory()->createBoolean(lIsBoundVariable)));
   
   }
@@ -429,14 +425,6 @@ namespace zorba { namespace xqxq {
     
     std::vector<Item> lVars;
     lQuery->getDynamicContext()->getExternalVariables(lVars);
-
-    std::vector<Item>::iterator lIte = lVars.begin();
-    std::vector<Item>::iterator lEnd = lVars.end();
-    
-    for (; lIte != lEnd; ++lIte) 
-    {
-      std::cout << lIte->getNamespace();
-    }
 
     return ItemSequence_t(new VectorItemSequence(lVars));
   }
@@ -483,8 +471,7 @@ namespace zorba { namespace xqxq {
     if(!(lQuery = lQueryMap->getQuery(lQueryID)))
       XQXQFunction::throwError("NoQueryMatch","String identifying query does not exists.");
 
-    //return ItemSequence_t(new SingletonItemSequence(Zorba::getInstance(0)->getItemFactory()->createBoolean(lQuery->isSequential())));
-    return ItemSequence_t(new SingletonItemSequence(Zorba::getInstance(0)->getItemFactory()->createBoolean(lQuery->isUpdating())));
+    return ItemSequence_t(new SingletonItemSequence(Zorba::getInstance(0)->getItemFactory()->createBoolean(lQuery->isSequential())));
   }
 
   /*******************************************************************************************
@@ -593,10 +580,10 @@ namespace zorba { namespace xqxq {
     if(lQuery->isUpdating())
       XQXQFunction::throwError("QueryIsUpdating", "Executing Query shouldn't be updating.");
     
-/*    
+   
     if(lQuery->isSequential())
       XQXQFunction::throwError("QueryIsSequential", "Executing Query shouldn't be sequential.");
-      */
+      
 
     std::vector<Item> lItemVector;
 
@@ -632,16 +619,14 @@ namespace zorba { namespace xqxq {
       XQXQFunction::throwError("NoQueryMatch","String identifying query does not exists.");
 
     //Uncomment as soon as isSequential is designed
-/*
     if(lQuery->isSequential())
-      XQXQFunction::throwError("QueryIsSequential", "Executing Query shouldn't be sequential.");
-  */    
+      XQXQFunction::throwError("QueryIsSequential", "Executing Query shouldn't be sequential.");   
 
     if(!lQuery->isUpdating())
     {
       XQXQFunction::throwError("QueryNotUpdating", "Executing Query should be updating.") ; 
     }
-
+    
     lQuery->execute();
     return ItemSequence_t(new EmptySequence());
   }
@@ -674,14 +659,12 @@ namespace zorba { namespace xqxq {
       XQXQFunction::throwError("QueryIsUpdating", "Executing Query shouldn't be updating.");
     }
 
-    //Uncomment as soon as isSequential is designed
-/*
+
     if(!lQuery->isSequential())
-      XQXQFunction::throwError("QueryNotSequential", "Executing Query should be sequential.");
-  */    
+      XQXQFunction::throwError("QueryNotSequential", "Executing Query should be sequential.");    
 
     std::vector<Item> lItemVector;
-
+    
     Iterator_t lIterQuery = lQuery->iterator();
     lIterQuery->open();
     Item lItemQuery;

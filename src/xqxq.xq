@@ -90,7 +90,7 @@ declare function xqxq:evaluate($query-key as xs:string) as item()* external;
  : in case the main expression of the module is an updating
  : expression 
  :)
-declare updating function xqxq:evaluate-updating($query-key as xs:string) external;
+declare function xqxq:evaluate-updating($query-key as xs:string) external;
 
 (:~ 
  : in case the main expression of the module is a sideffecting
