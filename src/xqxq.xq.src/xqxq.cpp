@@ -424,7 +424,7 @@ namespace zorba { namespace xqxq {
       XQXQFunction::throwError("NoQueryMatch","String identifying query does not exists.");
     
     std::vector<Item> lVars;
-    lQuery->getDynamicContext()->getExternalVariables(lVars);
+    lQuery->getStaticContext()->getExternalVariables(lVars);
 
     return ItemSequence_t(new VectorItemSequence(lVars));
   }
@@ -617,7 +617,7 @@ namespace zorba { namespace xqxq {
     XQuery_t lQuery;
     if(!(lQuery = lQueryMap->getQuery(lQueryID)))
       XQXQFunction::throwError("NoQueryMatch","String identifying query does not exists.");
-
+    
     //Uncomment as soon as isSequential is designed
     if(lQuery->isSequential())
       XQXQFunction::throwError("QueryIsSequential", "Executing Query shouldn't be sequential.");   
