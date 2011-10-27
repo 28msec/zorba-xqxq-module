@@ -257,9 +257,10 @@ namespace zorba { namespace xqxq {
     Zorba *lZorba = Zorba::getInstance(0);
 
     std::string lQueryString = getOneStringArgument(aArgs, 0).c_str(); 
-    DiagnosticHandler* a = new DiagnosticHandler();
-    XQuery_t lQuery = lZorba->createQuery(a);   
-    lQuery->compile(lQueryString);
+    
+    StaticContext_t lStaticContext = lZorba->createStaticContext();
+
+    XQuery_t lQuery = lZorba->compileQuery(lQueryString, lStaticContext);
     
     String lKey = getKey(lQueryString);
     
@@ -424,8 +425,7 @@ namespace zorba { namespace xqxq {
       XQXQFunction::throwError("NoQueryMatch","String identifying query does not exists.");
     
     std::vector<Item> lVars;
-    lQuery->getStaticContext()->getExternalVariables(lVars);
-
+    lQuery->getExternalVariables(lVars);
     return ItemSequence_t(new VectorItemSequence(lVars));
   }
   /*******************************************************************************************
