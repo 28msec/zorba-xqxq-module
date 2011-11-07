@@ -1,12 +1,12 @@
-#include <zorba\item_factory.h>
-#include <zorba\singleton_item_sequence.h>
-#include <zorba\diagnostic_list.h>
-#include <zorba\empty_sequence.h>
-#include <zorba\store_manager.h>
-#include <zorba\user_exception.h>
-#include <zorba\vector_item_sequence.h>
-#include <zorba\serializer.h>
-#include <zorba\xquery.h>
+#include <zorba/item_factory.h>
+#include <zorba/singleton_item_sequence.h>
+#include <zorba/diagnostic_list.h>
+#include <zorba/empty_sequence.h>
+#include <zorba/store_manager.h>
+#include <zorba/user_exception.h>
+#include <zorba/vector_item_sequence.h>
+#include <zorba/serializer.h>
+#include <zorba/xquery.h>
 
 #include <vector>
 
@@ -382,18 +382,14 @@ namespace zorba { namespace xqxq {
       XQXQFunction::throwError("NoQueryMatch","String identifying query does not exists.");
 
     Item lVarQName = XQXQFunction::getItemArgument(aArgs, 1);
-
-    Item lVar;
-    Iterator_t lVarIter;
-
     bool lIsBoundVariable;
+
     try
     {
-      lIsBoundVariable = lQuery->getDynamicContext()->getVariable(lVarQName.getNamespace(),lVarQName.getLocalName(), lVar, lVarIter);
+      lIsBoundVariable = lQuery->isBoundExternalVariable(lVarQName.getNamespace(),lVarQName.getLocalName());
     }
     catch (ZorbaException& ze)
     {
-      
       if (!strcmp("XPDY0002",ze.diagnostic().qname().localname()))
         lIsBoundVariable = false;
       else
