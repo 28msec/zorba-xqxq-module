@@ -5,7 +5,6 @@ variable $query-key := xqxq:prepare-main-module('
   declare variable $c external;
   $a');
 xqxq:bind-variable($query-key, xs:QName('a'), "foo");
-variable $a := xqxq:is-bound-variable($query-key, xs:QName('a'));
-variable $b := xqxq:is-bound-variable($query-key, xs:QName('b'));
-variable $c := xqxq:is-bound-variable($query-key, xs:QName('c'));
-$a, $b, $c
+xqxq:is-bound-variable($query-key, xs:QName('a')),
+xqxq:is-bound-variable($query-key, xs:QName('b')),
+xqxq:is-bound-variable($query-key, xs:QName('c'))

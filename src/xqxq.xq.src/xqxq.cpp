@@ -421,7 +421,15 @@ namespace zorba { namespace xqxq {
       XQXQFunction::throwError("NoQueryMatch","String identifying query does not exists.");
     
     std::vector<Item> lVars;
-    lQuery->getExternalVariables(lVars);
+    Iterator_t lVarsIterator;
+    lQuery->getExternalVariables(lVarsIterator);
+
+    Item lVar;
+    lVarsIterator->open();
+    while(lVarsIterator->next(lVar))
+      lVars.push_back(lVar);
+    lVarsIterator->close();
+
     return ItemSequence_t(new VectorItemSequence(lVars));
   }
   /*******************************************************************************************
