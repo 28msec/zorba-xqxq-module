@@ -19,25 +19,21 @@ namespace zorba { namespace xqxq {
 
       static ItemFactory* theFactory;
 
-      ExternalFunction* thePrepareMainModuleFunction;
-      ExternalFunction* thePrepareLibraryModuleFunction;
-      ExternalFunction* theGetExternalVariablesFunction;
-      ExternalFunction* theIsBoundContextItemFunction;
-      ExternalFunction* theIsBoundVariableFunction;
-      ExternalFunction* theIsUpdatingFunction;
-      ExternalFunction* theIsSequentialFunction;
-      ExternalFunction* theBindContextItemFunction;
-      ExternalFunction* theBindContextPositionFunction;
-      ExternalFunction* theBindContextSizeFunction;
-      ExternalFunction* theBindVariableFunction;
-      ExternalFunction* theEvaluateFunction;
-      ExternalFunction* theEvaluateUpdatingFunction;
-      ExternalFunction* theEvaluateSequentialFunction;
-      ExternalFunction* theDeleteQueryFunction;
+    protected:
+      class ltstr
+      {
+      public:
+        bool operator()(const String& s1, const String& s2) const
+        {
+          return s1.compare(s2) < 0;
+        }
+      };
+
+      typedef std::map<String, ExternalFunction*, ltstr> FuncMap_t;
+
+      FuncMap_t theFunctions;
 
     public:
-
-      XQXQModule();
 
       virtual ~XQXQModule();
 

@@ -19,112 +19,76 @@ namespace zorba { namespace xqxq {
   
   ItemFactory* XQXQModule::theFactory = 0;
 
-  XQXQModule::XQXQModule()
-    : thePrepareMainModuleFunction(0), theIsBoundVariableFunction(0), 
-      theGetExternalVariablesFunction(0), theIsUpdatingFunction(0), 
-      theIsSequentialFunction(0), theBindContextItemFunction(0),
-      theBindContextPositionFunction(0), theBindContextSizeFunction(0), 
-      theBindVariableFunction(0), theEvaluateFunction(0), 
-      theEvaluateUpdatingFunction(0), thePrepareLibraryModuleFunction(0), 
-      theEvaluateSequentialFunction(0), theDeleteQueryFunction(0),
-      theIsBoundContextItemFunction(0)
-  {
-     
-  }
-
   zorba::ExternalFunction*
     XQXQModule::getExternalFunction(const zorba::String& localName)
   {
-      if(localName == "prepare-main-module"){
-        if(!thePrepareMainModuleFunction){
-          thePrepareMainModuleFunction = new PrepareMainModuleFunction(this);
-        return thePrepareMainModuleFunction;
-        } 
+    ExternalFunction*& lFunc = theFunctions[localName];
+    if(!lFunc)
+      if(1==0)
+      {
       }
-      if(localName == "prepare-library-module"){
-        if(!thePrepareLibraryModuleFunction){
-          thePrepareLibraryModuleFunction = new PrepareLibraryModuleFunction(this);
-        return thePrepareLibraryModuleFunction;
-        } 
+      else if(localName == "prepare-main-module")
+      {
+        lFunc = new PrepareMainModuleFunction(this);
       }
-      else if(localName == "is-bound-context-item"){
-        if(!theIsBoundContextItemFunction){
-          theIsBoundContextItemFunction = new IsBoundContextItemFunction(this);
-        return theIsBoundContextItemFunction;
-        }
+      if(localName == "prepare-library-module")
+      {
+        lFunc = new PrepareLibraryModuleFunction(this);
       }
-      else if(localName == "is-bound-variable"){
-        if(!theIsBoundVariableFunction){
-          theIsBoundVariableFunction = new IsBoundVariableFunction(this);
-        return theIsBoundVariableFunction;
-        }
+      else if(localName == "is-bound-context-item")
+      {
+        lFunc = new IsBoundContextItemFunction(this);
       }
-      else if(localName == "get-external-variables"){
-        if(!theGetExternalVariablesFunction){
-          theGetExternalVariablesFunction = new GetExternalVariablesFunction(this);
-        return theGetExternalVariablesFunction;
-        }
+      else if(localName == "is-bound-variable")
+      {
+        lFunc = new IsBoundVariableFunction(this);
       }
-      else if(localName == "is-updating"){
-        if(!theIsUpdatingFunction){
-          theIsUpdatingFunction = new IsUpdatingFunction(this);
-        return theIsUpdatingFunction;
-        }
+      else if(localName == "get-external-variables")
+      {
+        lFunc = new GetExternalVariablesFunction(this);
       }
-      else if(localName == "is-sequential"){
-        if(!theIsSequentialFunction){
-          theIsSequentialFunction = new IsSequentialFunction(this);
-        return theIsSequentialFunction;
-        }
+      else if(localName == "is-updating")
+      {
+        lFunc = new IsUpdatingFunction(this);        
+      }
+      else if(localName == "is-sequential")
+      {
+        lFunc = new IsSequentialFunction(this);
       }      
-      else if(localName == "bind-context-item"){
-        if(!theBindContextItemFunction){
-          theBindContextItemFunction = new BindContextItemFunction(this);
-        return theBindContextItemFunction;
-        }
+      else if(localName == "bind-context-item")
+      {
+        lFunc = new BindContextItemFunction(this);
       }
-      else if(localName == "bind-context-position"){
-        if(!theBindContextPositionFunction){
-          theBindContextPositionFunction = new BindContextPositionFunction(this);
-        return theBindContextPositionFunction;
-        }
+      else if(localName == "bind-context-position")
+      {
+        lFunc = new BindContextPositionFunction(this);
       }
-      else if(localName == "bind-context-size"){
-        if(!theBindContextSizeFunction){
-          theBindContextSizeFunction = new BindContextSizeFunction(this);
-        return theBindContextSizeFunction;
-        }
+      else if(localName == "bind-context-size")
+      {
+        lFunc = new BindContextSizeFunction(this);
       }
-      else if(localName == "bind-variable"){
-        if(!theBindVariableFunction){
-          theBindVariableFunction = new BindVariableFunction(this);
-        return theBindVariableFunction;
-        }
+      else if(localName == "bind-variable")
+      {
+        lFunc = new BindVariableFunction(this);
       }
-      else if(localName == "evaluate"){
-        if(!theEvaluateFunction){
-          theEvaluateFunction = new EvaluateFunction(this);
-        return theEvaluateFunction;
-        }
+      else if(localName == "evaluate")
+      {
+        lFunc = new EvaluateFunction(this);
       }
-      else if(localName == "evaluate-updating"){
-        if(!theEvaluateUpdatingFunction){
-          theEvaluateUpdatingFunction = new EvaluateUpdatingFunction(this);
-        return theEvaluateUpdatingFunction;
-        }
+      else if(localName == "evaluate-updating")
+      {
+        lFunc = new EvaluateUpdatingFunction(this);
       }
-      else if(localName == "evaluate-sequential"){
-        if(!theEvaluateSequentialFunction){
-          theEvaluateSequentialFunction = new EvaluateSequentialFunction(this);
-        return theEvaluateSequentialFunction;
-        }
+      else if(localName == "evaluate-sequential")
+      {
+        lFunc = new EvaluateSequentialFunction(this);
       }
-      else if(localName == "delete-query"){
-        if(!theDeleteQueryFunction){
-          theDeleteQueryFunction = new DeleteQueryFunction(this);
-        return theDeleteQueryFunction;
-        }
+      else if(localName == "delete-query")
+      {
+        lFunc = new DeleteQueryFunction(this);
       }
+
+      return lFunc;
   }
 
   void XQXQModule::destroy() 
@@ -134,7 +98,12 @@ namespace zorba { namespace xqxq {
 
   XQXQModule::~XQXQModule()
   {
-    delete thePrepareMainModuleFunction;
+    for (FuncMap_t::const_iterator lIter = theFunctions.begin();
+       lIter != theFunctions.end(); ++lIter) 
+    {
+      delete lIter->second;
+    }
+    theFunctions.clear();
   }
 
   /*******************************************************************************************
