@@ -22,8 +22,12 @@ namespace zorba { namespace xqxq {
   zorba::ExternalFunction*
     XQXQModule::getExternalFunction(const zorba::String& localName)
   {
+    
+    FuncMap_t::iterator lIte = theFunctions.find(localName);
+    
     ExternalFunction*& lFunc = theFunctions[localName];
-    if(!lFunc)
+
+    if(lIte == theFunctions.end())
       if(1==0)
       {
       }
