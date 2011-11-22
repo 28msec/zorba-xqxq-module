@@ -7,6 +7,7 @@
 #include <zorba/vector_item_sequence.h>
 #include <zorba/serializer.h>
 #include <zorba/xquery.h>
+#include <time.h>
 
 #include <vector>
 
@@ -47,7 +48,7 @@ namespace zorba { namespace xqxq {
       {
         lFunc = new IsBoundVariableFunction(this);
       }
-      else if(localName == "get-external-variables")
+      else if(localName == "external-variables")
       {
         lFunc = new GetExternalVariablesFunction(this);
       }
@@ -115,7 +116,7 @@ namespace zorba { namespace xqxq {
   XQXQFunction::XQXQFunction(const XQXQModule* aModule)
     : theModule(aModule)
   {
-   
+   srand(time(NULL));
   }
 
   XQXQFunction::~XQXQFunction()
@@ -139,6 +140,7 @@ namespace zorba { namespace xqxq {
     args_iter->close();
     return lTmpString;
   }
+
 
   Item
     XQXQFunction::getItemArgument(const Arguments_t& aArgs, int aPos) const
@@ -171,7 +173,7 @@ namespace zorba { namespace xqxq {
   }
 
   bool 
-    QueryMap::storeQuery(String aKeyName, XQuery_t aQuery)
+    QueryMap::storeQuery(const String& aKeyName, XQuery_t aQuery)
   {
     std::pair<QueryMap_t::iterator,bool> ret;
     ret = queryMap->insert(std::pair<std::string, XQuery_t>(aKeyName.c_str(), aQuery));
@@ -183,7 +185,7 @@ namespace zorba { namespace xqxq {
   }
 
   XQuery_t
-    QueryMap::getQuery(String aKeyName)
+    QueryMap::getQuery(const String& aKeyName)
   {
     QueryMap::QueryMap_t::iterator lIter = queryMap->find(aKeyName.c_str());
 
@@ -196,7 +198,7 @@ namespace zorba { namespace xqxq {
   }
 
   bool
-    QueryMap::deleteQuery(String aKeyName)
+    QueryMap::deleteQuery(const String& aKeyName)
   {
     QueryMap::QueryMap_t::iterator lIter = queryMap->find(aKeyName.c_str());
 
@@ -229,41 +231,49 @@ namespace zorba { namespace xqxq {
 
     Zorba *lZorba = Zorba::getInstance(0);
 
-    std::string lQueryString = getOneStringArgument(aArgs, 0).c_str(); 
+    String lQueryString = getOneStringArgument(aArgs, 0); 
     
     StaticContext_t lStaticContext = lZorba->createStaticContext();
 
-    XQuery_t lQuery = lZorba->compileQuery(lQueryString, lStaticContext);
+    XQuery_t lQuery;
     
-    String lKey = getKey(lQueryString);
-    
-    if(!lQueryMap->storeQuery(lKey, lQuery))
+    try
     {
-      throwError("QueryAlreadyCreated", "This Query has already been created.");
+      lQuery = lZorba->compileQuery(lQueryString, lStaticContext);
     }
+    catch (ZorbaException& e)
+    {
+      const zorba::Diagnostic& d = e.diagnostic();
+      std::ostringstream err;
+      err << e;
+      Item errQName = XQXQModule::getItemFactory()->createQName(
+        d.qname().ns(), d.qname().localname()
+      );
+      throw USER_EXCEPTION(errQName, err.str());
+    }
+
+    String lUUID = getUUID();
     
-    return ItemSequence_t(new SingletonItemSequence(XQXQModule::getItemFactory()->createString(lKey)));
+    lQueryMap->storeQuery(lUUID, lQuery);
+
+    return ItemSequence_t(new SingletonItemSequence(XQXQModule::getItemFactory()->createAnyURI(lUUID)));
   }
 
   String 
-    PrepareMainModuleFunction::getKey(std::string query)
+    PrepareMainModuleFunction::S4 ()
   {
-    unsigned int hash = 0;
-    unsigned int qLength = query.length();
-    for (unsigned int i = 0; i < qLength; i++) 
-    {
-      hash = hash * 31 + query.at(i);
-    }
-    std::stringstream hashS;
-    hashS << hash;
-    
-    std::string key = hashS.str();
-
-    //Check if QNAME already in tree
-
-    return key;
+    unsigned long randNum = (1 + rand() * 0x10000)|0;
+    char* randBuff= new char[20];
+    sprintf(randBuff, "%lx", randNum);
+    String lString(randBuff);
+    return lString;
   }
 
+  String 
+    PrepareMainModuleFunction::getUUID()
+  {
+    return (S4()+S4()+"-"+S4()+"-"+S4()+"-"+S4()+"-"+S4()+S4()+S4());
+  }
 
   /*******************************************************************************************
   *******************************************************************************************/
@@ -274,15 +284,12 @@ namespace zorba { namespace xqxq {
       const zorba::DynamicContext* aDctx) const 
   {
     Zorba *lZorba = Zorba::getInstance(0);
-    std::string lQueryString = getOneStringArgument(aArgs, 0).c_str();     
-    //DiagnosticHandler* a = new DiagnosticHandler();
-    //XQuery_t lQuery = lZorba->createQuery(a);   
+    String lQueryString = getOneStringArgument(aArgs, 0);     
+    Zorba_CompilerHints_t hints;
+    StaticContext_t lStaticContext =  lZorba->createStaticContext();
     try
     {
-    XQuery_t lQuery = lZorba->compileQuery(lQueryString);
-    std::stringstream streamRes;
-    
-      streamRes << lQuery;
+      lStaticContext->loadProlog(lQueryString, hints);
     }
     catch(ZorbaException* e)
     {
@@ -309,7 +316,7 @@ namespace zorba { namespace xqxq {
     QueryMap* lQueryMap;
     if(!(lQueryMap= dynamic_cast<QueryMap*>(aDctx->getExternalFunctionParameter("xqxqQueryMap"))))
     {
-      XQXQFunction::throwError("QueryMapNotFound", "There are no queries, be sure to call prepare-main-module first.");
+      XQXQFunction::throwError("NoQueryMatch", "String identifying query does not exists.");
     }
 
     XQuery_t lQuery;
@@ -343,11 +350,11 @@ namespace zorba { namespace xqxq {
       const zorba::DynamicContext* aDctx) const 
   {
     String lQueryID = XQXQFunction::getOneStringArgument(aArgs, 0);
-
+    
     QueryMap* lQueryMap;
     if(!(lQueryMap= dynamic_cast<QueryMap*>(aDctx->getExternalFunctionParameter("xqxqQueryMap"))))
     {
-      XQXQFunction::throwError("QueryMapNotFound", "There are no queries, be sure to call prepare-main-module first.");
+      XQXQFunction::throwError("NoQueryMatch", "String identifying query does not exists.");
     }
 
     XQuery_t lQuery;
@@ -386,7 +393,7 @@ namespace zorba { namespace xqxq {
     QueryMap* lQueryMap;
     if(!(lQueryMap= dynamic_cast<QueryMap*>(aDctx->getExternalFunctionParameter("xqxqQueryMap"))))
     {
-      XQXQFunction::throwError("QueryMapNotFound", "There are no queries, be sure to call prepare-main-module first.");
+      XQXQFunction::throwError("NoQueryMatch", "String identifying query does not exists.");
     }
 
     XQuery_t lQuery;
@@ -418,7 +425,7 @@ namespace zorba { namespace xqxq {
     QueryMap* lQueryMap;
     if(!(lQueryMap= dynamic_cast<QueryMap*>(aDctx->getExternalFunctionParameter("xqxqQueryMap"))))
     {
-      XQXQFunction::throwError("QueryMapNotFound", "There are no queries, be sure to call prepare-main-module first.");
+      XQXQFunction::throwError("NoQueryMatch", "String identifying query does not exists.");
     }
 
     XQuery_t lQuery;
@@ -441,7 +448,7 @@ namespace zorba { namespace xqxq {
     QueryMap* lQueryMap;
     if(!(lQueryMap= dynamic_cast<QueryMap*>(aDctx->getExternalFunctionParameter("xqxqQueryMap"))))
     {
-      XQXQFunction::throwError("QueryMapNotFound", "There are no queries, be sure to call prepare-main-module first.");
+      XQXQFunction::throwError("NoQueryMatch", "String identifying query does not exists.");
     }
 
     XQuery_t lQuery;
@@ -464,7 +471,7 @@ namespace zorba { namespace xqxq {
     QueryMap* lQueryMap;
     if(!(lQueryMap= dynamic_cast<QueryMap*>(aDctx->getExternalFunctionParameter("xqxqQueryMap"))))
     {
-      XQXQFunction::throwError("QueryMapNotFound", "There are no queries, be sure to call prepare-main-module first.");
+      XQXQFunction::throwError("NoQueryMatch", "String identifying query does not exists.");
     }
 
     XQuery_t lQuery;
@@ -518,7 +525,7 @@ namespace zorba { namespace xqxq {
     QueryMap* lQueryMap;
     if(!(lQueryMap= dynamic_cast<QueryMap*>(aDctx->getExternalFunctionParameter("xqxqQueryMap"))))
     {
-      XQXQFunction::throwError("QueryMapNotFound", "There are no queries, be sure to call prepare-main-module first.");
+      XQXQFunction::throwError("NoQueryMatch", "String identifying query does not exists.");
     }
 
     XQuery_t lQuery;
@@ -547,7 +554,7 @@ namespace zorba { namespace xqxq {
     QueryMap* lQueryMap;
     if(!(lQueryMap= dynamic_cast<QueryMap*>(aDctx->getExternalFunctionParameter("xqxqQueryMap"))))
     {
-      XQXQFunction::throwError("QueryMapNotFound", "There are no queries, be sure to call prepare-main-module first.");
+      XQXQFunction::throwError("NoQueryMatch", "String identifying query does not exists.");
     }
 
     XQuery_t lQuery;
@@ -588,7 +595,7 @@ namespace zorba { namespace xqxq {
     QueryMap* lQueryMap;
     if(!(lQueryMap= dynamic_cast<QueryMap*>(aDctx->getExternalFunctionParameter("xqxqQueryMap"))))
     {
-      XQXQFunction::throwError("QueryMapNotFound", "There are no queries, be sure to call prepare-main-module first.");
+      XQXQFunction::throwError("NoQueryMatch", "String identifying query does not exists.");
     }
 
     XQuery_t lQuery;
@@ -621,7 +628,7 @@ namespace zorba { namespace xqxq {
     QueryMap* lQueryMap;
     if(!(lQueryMap= dynamic_cast<QueryMap*>(aDctx->getExternalFunctionParameter("xqxqQueryMap"))))
     {
-      XQXQFunction::throwError("QueryMapNotFound", "There are no queries, be sure to call prepare-main-module first.");
+      XQXQFunction::throwError("NoQueryMatch", "String identifying query does not exists.");
     }
 
     XQuery_t lQuery;
@@ -666,7 +673,7 @@ namespace zorba { namespace xqxq {
     QueryMap* lQueryMap;
     if(!(lQueryMap= dynamic_cast<QueryMap*>(aDctx->getExternalFunctionParameter("xqxqQueryMap"))))
     {
-      XQXQFunction::throwError("QueryMapNotFound", "There are no queries, be sure to call prepare-main-module first.");
+      XQXQFunction::throwError("NoQueryMatch", "String identifying query does not exists.");
     }
 
     if(!lQueryMap->deleteQuery(lQueryID))

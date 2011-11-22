@@ -57,6 +57,34 @@ namespace zorba { namespace xqxq {
       }
   };
 
+  class QueryMap : public ExternalFunctionParameter{
+    private:
+      typedef std::map<std::string, XQuery_t> QueryMap_t;
+      QueryMap_t* queryMap;
+    
+    public:
+      QueryMap();
+      bool 
+        storeQuery(const String&, XQuery_t);
+      XQuery_t
+        getQuery(const String&);
+      bool 
+        deleteQuery(const String&);
+      virtual void 
+        destroy() throw()
+      {
+        if(queryMap)
+        {
+          for (QueryMap_t::const_iterator lIter = queryMap->begin();
+            lIter != queryMap->end(); ++lIter)
+            {
+              lIter->second->close();
+            }
+            queryMap->clear();
+        }
+        delete this;
+      };
+  };
 
   class XQXQFunction : public ContextualExternalFunction
   {
@@ -82,34 +110,7 @@ namespace zorba { namespace xqxq {
         getURI() const;
   };
 
-  class QueryMap : public ExternalFunctionParameter{
-    private:
-      typedef std::map<std::string, XQuery_t> QueryMap_t;
-      QueryMap_t* queryMap;
-    
-    public:
-      QueryMap();
-      bool 
-        storeQuery(String, XQuery_t);
-      XQuery_t
-        getQuery(String);
-      bool 
-        deleteQuery(String);
-      virtual void 
-        destroy() throw()
-      {
-        if(queryMap)
-        {
-          for (QueryMap_t::const_iterator lIter = queryMap->begin();
-            lIter != queryMap->end(); ++lIter)
-            {
-              lIter->second->close();
-            }
-            queryMap->clear();
-        }
-        delete this;
-      };
-  };
+  
 
   class PrepareMainModuleFunction : public XQXQFunction{
     public:
@@ -127,7 +128,10 @@ namespace zorba { namespace xqxq {
 
     protected:
        static String
-         getKey(std::string);
+         getUUID();
+
+       static String
+         S4();
 
   };
 
@@ -183,7 +187,7 @@ namespace zorba { namespace xqxq {
       virtual ~GetExternalVariablesFunction() {}
 
       virtual zorba::String
-        getLocalName() const {return "get-external-variables"; }
+        getLocalName() const {return "external-variables"; }
 
       virtual zorba::ItemSequence_t
         evaluate(const Arguments_t&,
