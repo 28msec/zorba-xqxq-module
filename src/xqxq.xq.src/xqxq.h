@@ -16,7 +16,6 @@ namespace zorba { namespace xqxq {
 
   class XQXQModule : public ExternalModule {
 		private:
-
       static ItemFactory* theFactory;
 
     protected:
@@ -55,6 +54,7 @@ namespace zorba { namespace xqxq {
 
         return theFactory;
       }
+
   };
 
   class QueryMap : public ExternalFunctionParameter{
@@ -76,11 +76,12 @@ namespace zorba { namespace xqxq {
         if(queryMap)
         {
           for (QueryMap_t::const_iterator lIter = queryMap->begin();
-            lIter != queryMap->end(); ++lIter)
-            {
-              lIter->second->close();
-            }
-            queryMap->clear();
+               lIter != queryMap->end(); ++lIter)
+          {
+            lIter->second->close();
+          }
+          queryMap->clear();
+          delete queryMap;
         }
         delete this;
       };
@@ -99,6 +100,11 @@ namespace zorba { namespace xqxq {
 
       static void
         throwError(const char*, const std::string);
+
+      XQuery_t
+      getQuery(
+          const zorba::DynamicContext* dctx,
+          const zorba::String& aIdent) const;
 
     public:
 
@@ -284,6 +290,24 @@ namespace zorba { namespace xqxq {
         evaluate(const Arguments_t&,
                  const zorba::StaticContext*,
                  const zorba::DynamicContext*) const;
+  };
+
+  /*******************************************************************************************
+  *******************************************************************************************/
+  class EvaluateItemSequence : public ItemSequence
+  {
+  protected:
+    Iterator_t theIter;
+
+  public:
+    EvaluateItemSequence(Iterator_t& aIter)
+      : theIter(aIter)
+    {}
+
+    virtual ~EvaluateItemSequence() {}
+
+    Iterator_t
+    getIterator() { return theIter; }
   };
 
   class EvaluateFunction : public XQXQFunction{

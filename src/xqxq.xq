@@ -62,7 +62,7 @@ declare %ann:sequential function xqxq:prepare-library-module($library-module-tex
  : @error xqxq:NoQueryMatch if no query with the given identifier
  :   was prepared.
  :)
-declare function xqxq:is-bound-context-item($query-key as xs:string) 
+declare function xqxq:is-bound-context-item($query-key as xs:anyURI) 
   as xs:boolean  external;
   
 
@@ -138,18 +138,6 @@ declare function xqxq:is-sequential($query-key as xs:anyURI) as
  :)
 declare %ann:sequential function xqxq:bind-context-item($query-key as xs:anyURI,
   $dot as item()) as empty-sequence() external ;
-
-(:~
- :
- :)
-declare %ann:sequential function xqxq:bind-context-position($query-key as
-  xs:string, $position as xs:integer) as empty-sequence() external ;
-
-(:~
- :
- :)
-declare %ann:sequential function xqxq:bind-context-size($query-key as xs:anyURI,
-  $last as xs:integer) as empty-sequence() external ;
 
 (:~
  : This function binds the variable with name $name of

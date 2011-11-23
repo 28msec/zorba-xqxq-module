@@ -8,6 +8,7 @@
 #include <zorba/serializer.h>
 #include <zorba/xquery.h>
 #include <time.h>
+#include <stdio.h>
 
 #include <vector>
 
@@ -28,72 +29,63 @@ namespace zorba { namespace xqxq {
     
     ExternalFunction*& lFunc = theFunctions[localName];
 
-    if(lIte == theFunctions.end())
-      if(1==0)
-      {
-      }
-      else if(localName == "prepare-main-module")
+    if (lIte == theFunctions.end())
+    {
+      if (localName == "prepare-main-module")
       {
         lFunc = new PrepareMainModuleFunction(this);
       }
-      if(localName == "prepare-library-module")
+      if (localName == "prepare-library-module")
       {
         lFunc = new PrepareLibraryModuleFunction(this);
       }
-      else if(localName == "is-bound-context-item")
+      else if (localName == "is-bound-context-item")
       {
         lFunc = new IsBoundContextItemFunction(this);
       }
-      else if(localName == "is-bound-variable")
+      else if (localName == "is-bound-variable")
       {
         lFunc = new IsBoundVariableFunction(this);
       }
-      else if(localName == "external-variables")
+      else if (localName == "external-variables")
       {
         lFunc = new GetExternalVariablesFunction(this);
       }
-      else if(localName == "is-updating")
+      else if (localName == "is-updating")
       {
         lFunc = new IsUpdatingFunction(this);        
       }
-      else if(localName == "is-sequential")
+      else if (localName == "is-sequential")
       {
         lFunc = new IsSequentialFunction(this);
       }      
-      else if(localName == "bind-context-item")
+      else if (localName == "bind-context-item")
       {
         lFunc = new BindContextItemFunction(this);
       }
-      else if(localName == "bind-context-position")
-      {
-        lFunc = new BindContextPositionFunction(this);
-      }
-      else if(localName == "bind-context-size")
-      {
-        lFunc = new BindContextSizeFunction(this);
-      }
-      else if(localName == "bind-variable")
+      else if (localName == "bind-variable")
       {
         lFunc = new BindVariableFunction(this);
       }
-      else if(localName == "evaluate")
+      else if (localName == "evaluate")
       {
         lFunc = new EvaluateFunction(this);
       }
-      else if(localName == "evaluate-updating")
+      else if (localName == "evaluate-updating")
       {
         lFunc = new EvaluateUpdatingFunction(this);
       }
-      else if(localName == "evaluate-sequential")
+      else if (localName == "evaluate-sequential")
       {
         lFunc = new EvaluateSequentialFunction(this);
       }
-      else if(localName == "delete-query")
+      else if (localName == "delete-query")
       {
         lFunc = new DeleteQueryFunction(this);
       }
+    }
 
-      return lFunc;
+    return lFunc;
   }
 
   void XQXQModule::destroy() 
@@ -116,7 +108,7 @@ namespace zorba { namespace xqxq {
   XQXQFunction::XQXQFunction(const XQXQModule* aModule)
     : theModule(aModule)
   {
-   srand(time(NULL));
+    srand(time(NULL));
   }
 
   XQXQFunction::~XQXQFunction()
@@ -154,6 +146,24 @@ namespace zorba { namespace xqxq {
     return lItem;
   }
 
+  XQuery_t
+  XQXQFunction::getQuery(
+      const zorba::DynamicContext* aDctx,
+      const zorba::String& aIdent) const
+  {
+    QueryMap* lQueryMap;
+    if (!(lQueryMap= dynamic_cast<QueryMap*>(aDctx->getExternalFunctionParameter("xqxqQueryMap"))))
+    {
+      throwError("NoQueryMatch", "No query with the given identifier was found");
+    }
+
+    XQuery_t lQuery;
+    if (!(lQuery = lQueryMap->getQuery(aIdent)))
+      throwError("NoQueryMatch", "No query with the given identifier was found");
+
+    return lQuery;
+  }
+
   void
     XQXQFunction::throwError(const char *err_localname, const std::string aErrorMessage)
   {
@@ -178,10 +188,7 @@ namespace zorba { namespace xqxq {
     std::pair<QueryMap_t::iterator,bool> ret;
     ret = queryMap->insert(std::pair<std::string, XQuery_t>(aKeyName.c_str(), aQuery));
     
-    if(ret.second == false)
-      return false;
-
-    return true;
+    return ret.second;
   }
 
   XQuery_t
@@ -266,13 +273,14 @@ namespace zorba { namespace xqxq {
     char* randBuff= new char[20];
     sprintf(randBuff, "%lx", randNum);
     String lString(randBuff);
+    delete[] randBuff;
     return lString;
   }
 
   String 
     PrepareMainModuleFunction::getUUID()
   {
-    return (S4()+S4()+"-"+S4()+"-"+S4()+"-"+S4()+"-"+S4()+S4()+S4());
+    return (String("urn:uuid:") + S4()+"-"+S4()+"-"+S4()+"-"+S4()+"-"+S4()+S4());
   }
 
   /*******************************************************************************************
@@ -291,9 +299,15 @@ namespace zorba { namespace xqxq {
     {
       lStaticContext->loadProlog(lQueryString, hints);
     }
-    catch(ZorbaException* e)
+    catch(ZorbaException& e)
     {
-      XQXQFunction::throwError("LibraryModuleError", e->what());
+      const zorba::Diagnostic& d = e.diagnostic();
+      std::ostringstream err;
+      err << e;
+      Item errQName = XQXQModule::getItemFactory()->createQName(
+        d.qname().ns(), d.qname().localname()
+      );
+      throw USER_EXCEPTION(errQName, err.str());
     }
     catch(...)
     {
@@ -313,15 +327,7 @@ namespace zorba { namespace xqxq {
 
     String lQueryID = XQXQFunction::getOneStringArgument(aArgs, 0);
 
-    QueryMap* lQueryMap;
-    if(!(lQueryMap= dynamic_cast<QueryMap*>(aDctx->getExternalFunctionParameter("xqxqQueryMap"))))
-    {
-      XQXQFunction::throwError("NoQueryMatch", "String identifying query does not exists.");
-    }
-
-    XQuery_t lQuery;
-    if(!(lQuery = lQueryMap->getQuery(lQueryID)))
-      XQXQFunction::throwError("NoQueryMatch","String identifying query does not exists.");
+    XQuery_t lQuery = getQuery(aDctx, lQueryID);
 
     Item lContextItem;
 
@@ -338,7 +344,7 @@ namespace zorba { namespace xqxq {
       else
         XQXQFunction::throwError(ze.diagnostic().qname().localname(), ze.diagnostic().message()); 
     }
-    return ItemSequence_t(new SingletonItemSequence(Zorba::getInstance(0)->getItemFactory()->createBoolean(lIsContextItemBound)));
+    return ItemSequence_t(new SingletonItemSequence(XQXQModule::getItemFactory()->createBoolean(lIsContextItemBound)));
   }
 
   /*******************************************************************************************
@@ -351,18 +357,10 @@ namespace zorba { namespace xqxq {
   {
     String lQueryID = XQXQFunction::getOneStringArgument(aArgs, 0);
     
-    QueryMap* lQueryMap;
-    if(!(lQueryMap= dynamic_cast<QueryMap*>(aDctx->getExternalFunctionParameter("xqxqQueryMap"))))
-    {
-      XQXQFunction::throwError("NoQueryMatch", "String identifying query does not exists.");
-    }
-
-    XQuery_t lQuery;
-    if(!(lQuery = lQueryMap->getQuery(lQueryID)))
-      XQXQFunction::throwError("NoQueryMatch","String identifying query does not exists.");
+    XQuery_t lQuery = getQuery(aDctx, lQueryID);
 
     Item lVarQName = XQXQFunction::getItemArgument(aArgs, 1);
-    bool lIsBoundVariable;
+    bool lIsBoundVariable = false;
 
     try
     {
@@ -375,7 +373,7 @@ namespace zorba { namespace xqxq {
       else
         XQXQFunction::throwError(ze.diagnostic().qname().localname(), ze.diagnostic().message());  
     }
-    return ItemSequence_t(new SingletonItemSequence(Zorba::getInstance(0)->getItemFactory()->createBoolean(lIsBoundVariable)));
+    return ItemSequence_t(new SingletonItemSequence(XQXQModule::getItemFactory()->createBoolean(lIsBoundVariable)));
   
   }
 
@@ -390,15 +388,7 @@ namespace zorba { namespace xqxq {
     
     String lQueryID = XQXQFunction::getOneStringArgument(aArgs, 0);
 
-    QueryMap* lQueryMap;
-    if(!(lQueryMap= dynamic_cast<QueryMap*>(aDctx->getExternalFunctionParameter("xqxqQueryMap"))))
-    {
-      XQXQFunction::throwError("NoQueryMatch", "String identifying query does not exists.");
-    }
-
-    XQuery_t lQuery;
-    if(!(lQuery = lQueryMap->getQuery(lQueryID)))
-      XQXQFunction::throwError("NoQueryMatch","String identifying query does not exists.");
+    XQuery_t lQuery = getQuery(aDctx, lQueryID);
     
     std::vector<Item> lVars;
     Iterator_t lVarsIterator;
@@ -422,17 +412,9 @@ namespace zorba { namespace xqxq {
   {
     String lQueryID = XQXQFunction::getOneStringArgument(aArgs, 0);
 
-    QueryMap* lQueryMap;
-    if(!(lQueryMap= dynamic_cast<QueryMap*>(aDctx->getExternalFunctionParameter("xqxqQueryMap"))))
-    {
-      XQXQFunction::throwError("NoQueryMatch", "String identifying query does not exists.");
-    }
+    XQuery_t lQuery = getQuery(aDctx, lQueryID);
 
-    XQuery_t lQuery;
-    if(!(lQuery = lQueryMap->getQuery(lQueryID)))
-      XQXQFunction::throwError("NoQueryMatch","String identifying query does not exists.");
-
-    return ItemSequence_t(new SingletonItemSequence(Zorba::getInstance(0)->getItemFactory()->createBoolean(lQuery->isUpdating())));
+    return ItemSequence_t(new SingletonItemSequence(XQXQModule::getItemFactory()->createBoolean(lQuery->isUpdating())));
   }
 
   /*******************************************************************************************
@@ -445,17 +427,9 @@ namespace zorba { namespace xqxq {
   {
     String lQueryID = XQXQFunction::getOneStringArgument(aArgs, 0);
 
-    QueryMap* lQueryMap;
-    if(!(lQueryMap= dynamic_cast<QueryMap*>(aDctx->getExternalFunctionParameter("xqxqQueryMap"))))
-    {
-      XQXQFunction::throwError("NoQueryMatch", "String identifying query does not exists.");
-    }
+    XQuery_t lQuery = getQuery(aDctx, lQueryID);
 
-    XQuery_t lQuery;
-    if(!(lQuery = lQueryMap->getQuery(lQueryID)))
-      XQXQFunction::throwError("NoQueryMatch","String identifying query does not exists.");
-
-    return ItemSequence_t(new SingletonItemSequence(Zorba::getInstance(0)->getItemFactory()->createBoolean(lQuery->isSequential())));
+    return ItemSequence_t(new SingletonItemSequence(XQXQModule::getItemFactory()->createBoolean(lQuery->isSequential())));
   }
 
   /*******************************************************************************************
@@ -468,15 +442,7 @@ namespace zorba { namespace xqxq {
   {
     String lQueryID = XQXQFunction::getOneStringArgument(aArgs,0);
 
-    QueryMap* lQueryMap;
-    if(!(lQueryMap= dynamic_cast<QueryMap*>(aDctx->getExternalFunctionParameter("xqxqQueryMap"))))
-    {
-      XQXQFunction::throwError("NoQueryMatch", "String identifying query does not exists.");
-    }
-
-    XQuery_t lQuery;
-    if(!(lQuery = lQueryMap->getQuery(lQueryID)))
-      XQXQFunction::throwError("NoQueryMatch","String identifying query does not exists.");
+    XQuery_t lQuery = getQuery(aDctx, lQueryID);
 
     Item lItemContext = XQXQFunction::getItemArgument(aArgs, 1);
     lQuery->getDynamicContext()->setContextItem(lItemContext);
@@ -522,15 +488,7 @@ namespace zorba { namespace xqxq {
   {
     String lQueryID = XQXQFunction::getOneStringArgument(aArgs,0);
 
-    QueryMap* lQueryMap;
-    if(!(lQueryMap= dynamic_cast<QueryMap*>(aDctx->getExternalFunctionParameter("xqxqQueryMap"))))
-    {
-      XQXQFunction::throwError("NoQueryMatch", "String identifying query does not exists.");
-    }
-
-    XQuery_t lQuery;
-    if(!(lQuery = lQueryMap->getQuery(lQueryID)))
-      XQXQFunction::throwError("NoQueryMatch","String identifying query does not exists.");
+    XQuery_t lQuery = getQuery(aDctx, lQueryID);
         
     Item lVarQName = XQXQFunction::getItemArgument(aArgs, 1); 
 
@@ -551,35 +509,21 @@ namespace zorba { namespace xqxq {
   {
     String lQueryID = XQXQFunction::getOneStringArgument(aArgs,0);
 
-    QueryMap* lQueryMap;
-    if(!(lQueryMap= dynamic_cast<QueryMap*>(aDctx->getExternalFunctionParameter("xqxqQueryMap"))))
-    {
-      XQXQFunction::throwError("NoQueryMatch", "String identifying query does not exists.");
-    }
-
-    XQuery_t lQuery;
-    if(!(lQuery = lQueryMap->getQuery(lQueryID)))
-      XQXQFunction::throwError("NoQueryMatch","String identifying query does not exists.");
+    XQuery_t lQuery = getQuery(aDctx, lQueryID);
 
     if(lQuery->isUpdating())
-      XQXQFunction::throwError("QueryIsUpdating", "Executing Query shouldn't be updating.");
+    {
+      throwError("QueryIsUpdating", "Executing Query shouldn't be updating.");
+    }
     
    
     if(lQuery->isSequential())
-      XQXQFunction::throwError("QueryIsSequential", "Executing Query shouldn't be sequential.");
-      
-
-    std::vector<Item> lItemVector;
-
-    Iterator_t lIterQuery = lQuery->iterator();
-    lIterQuery->open();
-    Item lItemQuery;
-    while(lIterQuery->next(lItemQuery))
     {
-      lItemVector.push_back(lItemQuery);
+      throwError("QueryIsSequential", "Executing Query shouldn't be sequential.");
     }
-
-    return ItemSequence_t(new VectorItemSequence(lItemVector));
+      
+    Iterator_t lIterQuery = lQuery->iterator();
+    return ItemSequence_t(new EvaluateItemSequence(lIterQuery));
   }
 
   /*******************************************************************************************
@@ -592,23 +536,16 @@ namespace zorba { namespace xqxq {
   {
     String lQueryID = XQXQFunction::getOneStringArgument(aArgs,0);
 
-    QueryMap* lQueryMap;
-    if(!(lQueryMap= dynamic_cast<QueryMap*>(aDctx->getExternalFunctionParameter("xqxqQueryMap"))))
-    {
-      XQXQFunction::throwError("NoQueryMatch", "String identifying query does not exists.");
-    }
-
-    XQuery_t lQuery;
-    if(!(lQuery = lQueryMap->getQuery(lQueryID)))
-      XQXQFunction::throwError("NoQueryMatch","String identifying query does not exists.");
+    XQuery_t lQuery = getQuery(aDctx, lQueryID);
     
-    //Uncomment as soon as isSequential is designed
     if(lQuery->isSequential())
-      XQXQFunction::throwError("QueryIsSequential", "Executing Query shouldn't be sequential.");   
+    {
+      throwError("QueryIsSequential", "Executing Query shouldn't be sequential.");   
+    }
 
     if(!lQuery->isUpdating())
     {
-      XQXQFunction::throwError("QueryNotUpdating", "Executing Query should be updating.") ; 
+      throwError("QueryNotUpdating", "Executing Query should be updating.") ; 
     }
     
     lQuery->execute();
@@ -623,41 +560,22 @@ namespace zorba { namespace xqxq {
       const zorba::StaticContext* aSctx,
       const zorba::DynamicContext* aDctx) const 
   {
-    String lQueryID = XQXQFunction::getOneStringArgument(aArgs,0);
+    String lQueryID = XQXQFunction::getOneStringArgument(aArgs, 0);
 
-    QueryMap* lQueryMap;
-    if(!(lQueryMap= dynamic_cast<QueryMap*>(aDctx->getExternalFunctionParameter("xqxqQueryMap"))))
-    {
-      XQXQFunction::throwError("NoQueryMatch", "String identifying query does not exists.");
-    }
+    XQuery_t lQuery = getQuery(aDctx, lQueryID);
 
-    XQuery_t lQuery;
-    if(!(lQuery = lQueryMap->getQuery(lQueryID)))
-      XQXQFunction::throwError("NoQueryMatch","String identifying query does not exists.");
-
-    Item item;
-    lQuery->getDynamicContext()->getContextItem(item);
-    
     if(lQuery->isUpdating())
     {
-      XQXQFunction::throwError("QueryIsUpdating", "Executing Query shouldn't be updating.");
+      throwError("QueryIsUpdating", "Executing Query shouldn't be updating.");
     }
-
 
     if(!lQuery->isSequential())
-      XQXQFunction::throwError("QueryNotSequential", "Executing Query should be sequential.");    
-
-    std::vector<Item> lItemVector;
-    
-    Iterator_t lIterQuery = lQuery->iterator();
-    lIterQuery->open();
-    Item lItemQuery;
-    while(lIterQuery->next(lItemQuery))
     {
-      lItemVector.push_back(lItemQuery);
+      throwError("QueryNotSequential", "Executing Query should be sequential.");    
     }
 
-    return ItemSequence_t(new VectorItemSequence(lItemVector));
+    Iterator_t lIterQuery = lQuery->iterator();
+    return ItemSequence_t(new EvaluateItemSequence(lIterQuery));
   }
 
   /*******************************************************************************************
@@ -671,13 +589,15 @@ namespace zorba { namespace xqxq {
     String lQueryID = XQXQFunction::getOneStringArgument(aArgs,0);
 
     QueryMap* lQueryMap;
-    if(!(lQueryMap= dynamic_cast<QueryMap*>(aDctx->getExternalFunctionParameter("xqxqQueryMap"))))
+    if (!(lQueryMap= dynamic_cast<QueryMap*>(aDctx->getExternalFunctionParameter("xqxqQueryMap"))))
     {
-      XQXQFunction::throwError("NoQueryMatch", "String identifying query does not exists.");
+      throwError("NoQueryMatch", "String identifying query does not exists.");
     }
 
-    if(!lQueryMap->deleteQuery(lQueryID))
-      XQXQFunction::throwError("NoQueryMatch","String identifying query does not exists.");
+    if (!lQueryMap->deleteQuery(lQueryID))
+    {
+      throwError("NoQueryMatch","String identifying query does not exists.");
+    }
       
     return ItemSequence_t(new EmptySequence());
   }
