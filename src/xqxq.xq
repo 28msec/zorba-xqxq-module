@@ -25,8 +25,6 @@ declare option ver:module-version "1.0";
  : @return an identifier for the compiled program that can be passed
  :   as arguments to other functions of this module.
  :
- : @error xqxq:QueryAlreadyCreated if the same query was already compiled.
- :
  : @error any (static or type) error that may be raised during the compilation
  : of the query. For example, err:XPST0003 if the given XQuery program could
  : not be parsed.
@@ -200,7 +198,7 @@ declare function xqxq:evaluate($query-key as xs:anyURI) as item()* external;
  :   given query or applying its updates.
  :
  :)
-declare %ann:sequential function xqxq:evaluate-updating($query-key as xs:anyURI) external;
+declare function xqxq:evaluate-updating($query-key as xs:anyURI) external;
 
 (:~ 
  : Evaluates the given prepared query and returns the result

@@ -146,6 +146,13 @@ namespace zorba { namespace xqxq {
     return lItem;
   }
 
+  Iterator_t
+    XQXQFunction::getIterArgument(const Arguments_t& aArgs, int aPos) const
+  {
+    Iterator_t args_iter = aArgs[aPos]->getIterator();
+    return args_iter;
+  }
+
   XQuery_t
   XQXQFunction::getQuery(
       const zorba::DynamicContext* aDctx,
@@ -295,6 +302,7 @@ namespace zorba { namespace xqxq {
     String lQueryString = getOneStringArgument(aArgs, 0);     
     Zorba_CompilerHints_t hints;
     StaticContext_t lStaticContext =  lZorba->createStaticContext();
+    hints.lib_module = true;
     try
     {
       lStaticContext->loadProlog(lQueryString, hints);
@@ -489,12 +497,12 @@ namespace zorba { namespace xqxq {
     String lQueryID = XQXQFunction::getOneStringArgument(aArgs,0);
 
     XQuery_t lQuery = getQuery(aDctx, lQueryID);
-        
+    
     Item lVarQName = XQXQFunction::getItemArgument(aArgs, 1); 
 
-    Item lVarValue = XQXQFunction::getItemArgument(aArgs, 2); 
+    Iterator_t lVarValue = XQXQFunction::getIterArgument(aArgs, 2); 
 
-    lQuery->getDynamicContext()->setVariable(lVarQName.getStringValue(), lVarValue);
+    lQuery->getDynamicContext()->setVariable(lVarQName.getNamespace(), lVarQName.getLocalName() , lVarValue);
 
     return ItemSequence_t(new EmptySequence());
   }
@@ -548,9 +556,9 @@ namespace zorba { namespace xqxq {
       throwError("QueryNotUpdating", "Executing Query should be updating.") ; 
     }
     
-    lQuery->execute();
-    return ItemSequence_t(new EmptySequence());
-  }
+    Iterator_t lIterQuery = lQuery->iterator();
+    return ItemSequence_t(new EvaluateItemSequence(lIterQuery));
+}
 
   /*******************************************************************************************
   *******************************************************************************************/

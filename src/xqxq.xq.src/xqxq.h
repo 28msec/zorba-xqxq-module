@@ -98,6 +98,9 @@ namespace zorba { namespace xqxq {
        Item
          getItemArgument(const Arguments_t&, int) const;
 
+       Iterator_t
+         getIterArgument(const Arguments_t&, int) const;
+
       static void
         throwError(const char*, const std::string);
 
