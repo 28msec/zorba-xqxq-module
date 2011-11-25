@@ -4,6 +4,7 @@
 #include <zorba/empty_sequence.h>
 #include <zorba/store_manager.h>
 #include <zorba/user_exception.h>
+#include <zorba/uri_resolvers.h>
 #include <zorba/vector_item_sequence.h>
 #include <zorba/serializer.h>
 #include <zorba/xquery.h>
@@ -18,8 +19,6 @@ namespace zorba { namespace xqxq {
 
   /*******************************************************************************************
   *******************************************************************************************/
-  
-  ItemFactory* XQXQModule::theFactory = 0;
 
   zorba::ExternalFunction*
     XQXQModule::getExternalFunction(const zorba::String& localName)
@@ -193,15 +192,14 @@ namespace zorba { namespace xqxq {
     QueryMap::storeQuery(const String& aKeyName, XQuery_t aQuery)
   {
     std::pair<QueryMap_t::iterator,bool> ret;
-    ret = queryMap->insert(std::pair<std::string, XQuery_t>(aKeyName.c_str(), aQuery));
-    
+    ret = queryMap->insert(std::pair<String, XQuery_t>(aKeyName, aQuery));
     return ret.second;
   }
 
   XQuery_t
     QueryMap::getQuery(const String& aKeyName)
   {
-    QueryMap::QueryMap_t::iterator lIter = queryMap->find(aKeyName.c_str());
+    QueryMap::QueryMap_t::iterator lIter = queryMap->find(aKeyName);
 
     if(lIter == queryMap->end())
       return NULL;
@@ -214,7 +212,7 @@ namespace zorba { namespace xqxq {
   bool
     QueryMap::deleteQuery(const String& aKeyName)
   {
-    QueryMap::QueryMap_t::iterator lIter = queryMap->find(aKeyName.c_str());
+    QueryMap::QueryMap_t::iterator lIter = queryMap->find(aKeyName);
 
     if(lIter == queryMap->end())
       return false;
@@ -247,13 +245,11 @@ namespace zorba { namespace xqxq {
 
     String lQueryString = getOneStringArgument(aArgs, 0); 
     
-    StaticContext_t lStaticContext = lZorba->createStaticContext();
-
     XQuery_t lQuery;
     
     try
     {
-      lQuery = lZorba->compileQuery(lQueryString, lStaticContext);
+      lQuery = lZorba->compileQuery(lQueryString);
     }
     catch (ZorbaException& e)
     {
@@ -300,12 +296,13 @@ namespace zorba { namespace xqxq {
   {
     Zorba *lZorba = Zorba::getInstance(0);
     String lQueryString = getOneStringArgument(aArgs, 0);     
+ 
     Zorba_CompilerHints_t hints;
-    StaticContext_t lStaticContext =  lZorba->createStaticContext();
     hints.lib_module = true;
+
     try
     {
-      lStaticContext->loadProlog(lQueryString, hints);
+      lZorba->compileQuery(lQueryString, hints);
     }
     catch(ZorbaException& e)
     {
@@ -316,10 +313,6 @@ namespace zorba { namespace xqxq {
         d.qname().ns(), d.qname().localname()
       );
       throw USER_EXCEPTION(errQName, err.str());
-    }
-    catch(...)
-    {
-      XQXQFunction::throwError("LibraryModuleError", "LibraryModule does not compile.");
     }
     return ItemSequence_t(new EmptySequence());
   }
@@ -337,20 +330,14 @@ namespace zorba { namespace xqxq {
 
     XQuery_t lQuery = getQuery(aDctx, lQueryID);
 
-    Item lContextItem;
-
-    //Remove try when bug ##### in launchpad is solved
     bool lIsContextItemBound;
     try
     {
-      lIsContextItemBound = lQuery->getDynamicContext()->getContextItem(lContextItem);
+      lIsContextItemBound = lQuery->getDynamicContext()->isBoundContextItem();
     }
     catch (ZorbaException& ze)
     {
-      if (!strcmp("XPDY0002",ze.diagnostic().qname().localname()))
-        lIsContextItemBound = false;
-      else
-        XQXQFunction::throwError(ze.diagnostic().qname().localname(), ze.diagnostic().message()); 
+      XQXQFunction::throwError(ze.diagnostic().qname().localname(), ze.diagnostic().message()); 
     }
     return ItemSequence_t(new SingletonItemSequence(XQXQModule::getItemFactory()->createBoolean(lIsContextItemBound)));
   }
@@ -372,14 +359,11 @@ namespace zorba { namespace xqxq {
 
     try
     {
-      lIsBoundVariable = lQuery->isBoundExternalVariable(lVarQName.getNamespace(),lVarQName.getLocalName());
+      lIsBoundVariable = lQuery->getDynamicContext()->isBoundExternalVariable(lVarQName.getNamespace(),lVarQName.getLocalName());
     }
     catch (ZorbaException& ze)
     {
-      if (!strcmp("XPDY0002",ze.diagnostic().qname().localname()))
-        lIsBoundVariable = false;
-      else
-        XQXQFunction::throwError(ze.diagnostic().qname().localname(), ze.diagnostic().message());  
+      XQXQFunction::throwError(ze.diagnostic().qname().localname(), ze.diagnostic().message());  
     }
     return ItemSequence_t(new SingletonItemSequence(XQXQModule::getItemFactory()->createBoolean(lIsBoundVariable)));
   
@@ -509,6 +493,25 @@ namespace zorba { namespace xqxq {
 
   /*******************************************************************************************
   *******************************************************************************************/
+  bool
+    EvaluateItemSequence::EvaluateIterator::next(Item& aItem)
+  {
+    try
+    {
+      return theIterator->next(aItem);
+    }
+    catch (ZorbaException& e)
+    {
+      const zorba::Diagnostic& d = e.diagnostic();
+      std::ostringstream err;
+      err << e;
+      Item errQName = XQXQModule::getItemFactory()->createQName(d.qname().ns(), d.qname().localname());
+      throw USER_EXCEPTION(errQName, err.str());
+    }
+  }
+
+  /*******************************************************************************************
+  *******************************************************************************************/
   zorba::ItemSequence_t
     EvaluateFunction::evaluate(
       const Arguments_t& aArgs,
@@ -531,6 +534,7 @@ namespace zorba { namespace xqxq {
     }
       
     Iterator_t lIterQuery = lQuery->iterator();
+
     return ItemSequence_t(new EvaluateItemSequence(lIterQuery));
   }
 

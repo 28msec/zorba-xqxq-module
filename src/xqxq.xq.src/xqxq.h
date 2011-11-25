@@ -15,9 +15,6 @@ namespace zorba { namespace xqxq {
   
 
   class XQXQModule : public ExternalModule {
-		private:
-      static ItemFactory* theFactory;
-
     protected:
       class ltstr
       {
@@ -47,21 +44,16 @@ namespace zorba { namespace xqxq {
       static ItemFactory*
         getItemFactory()
       {
-        if(!theFactory)
-        {
-          theFactory = Zorba::getInstance(0)->getItemFactory();
-        }
-
-        return theFactory;
+        return Zorba::getInstance(0)->getItemFactory();
       }
 
   };
 
   class QueryMap : public ExternalFunctionParameter{
     private:
-      typedef std::map<std::string, XQuery_t> QueryMap_t;
+      typedef std::map<String, XQuery_t> QueryMap_t;
       QueryMap_t* queryMap;
-    
+
     public:
       QueryMap();
       bool 
@@ -300,17 +292,57 @@ namespace zorba { namespace xqxq {
   class EvaluateItemSequence : public ItemSequence
   {
   protected:
-    Iterator_t theIter;
+
+    class EvaluateIterator : public Iterator
+    {
+      protected:
+        Iterator_t theIterator;
+
+      public:
+        EvaluateIterator(Iterator_t& aIter)
+          : theIterator(aIter)
+        {
+        }
+
+        virtual ~EvaluateIterator(){}
+
+        virtual void
+          open()
+        {
+          theIterator->open();
+        }
+
+        virtual bool
+          next(Item& aItem);
+
+        virtual void 
+          close()
+        {
+          theIterator->close();
+        }
+
+        virtual bool
+          isOpen() const
+        {
+          return theIterator->isOpen();
+        }
+
+    };
+
+    typedef zorba::SmartPtr<EvaluateIterator> EvaluateIterator_t;
+    EvaluateIterator_t theIter; 
 
   public:
     EvaluateItemSequence(Iterator_t& aIter)
-      : theIter(aIter)
-    {}
+      :theIter (new EvaluateIterator(aIter))
+    {
+      
+    }
 
     virtual ~EvaluateItemSequence() {}
 
     Iterator_t
-    getIterator() { return theIter; }
+      getIterator() { return theIter.get(); }
   };
 
   class EvaluateFunction : public XQXQFunction{

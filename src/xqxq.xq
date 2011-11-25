@@ -198,7 +198,7 @@ declare function xqxq:evaluate($query-key as xs:anyURI) as item()* external;
  :   given query or applying its updates.
  :
  :)
-declare function xqxq:evaluate-updating($query-key as xs:anyURI) external;
+declare updating function xqxq:evaluate-updating($query-key as xs:anyURI) external;
 
 (:~ 
  : Evaluates the given prepared query and returns the result
