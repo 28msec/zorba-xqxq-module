@@ -503,8 +503,12 @@ namespace zorba { namespace xqxq {
     catch (ZorbaException& e)
     {
       const zorba::Diagnostic& d = e.diagnostic();
+      std::ostringstream message;
+      message << e;
+      std::string msg = message.str().substr(message.str().find(")")+1);
+
       std::ostringstream err;
-      err << e;
+      err << "The query evaluated using xqxq:evaluate raised an error as follows" << " \"(" << theQueryID << ")" << msg << ":" << d.message() << "\"";
       Item errQName = XQXQModule::getItemFactory()->createQName(d.qname().ns(), d.qname().localname());
       throw USER_EXCEPTION(errQName, err.str());
     }
@@ -535,7 +539,7 @@ namespace zorba { namespace xqxq {
       
     Iterator_t lIterQuery = lQuery->iterator();
 
-    return ItemSequence_t(new EvaluateItemSequence(lIterQuery));
+    return ItemSequence_t(new EvaluateItemSequence(lIterQuery, lQueryID));
   }
 
   /*******************************************************************************************
@@ -561,7 +565,7 @@ namespace zorba { namespace xqxq {
     }
     
     Iterator_t lIterQuery = lQuery->iterator();
-    return ItemSequence_t(new EvaluateItemSequence(lIterQuery));
+    return ItemSequence_t(new EvaluateItemSequence(lIterQuery, lQueryID));
 }
 
   /*******************************************************************************************
@@ -587,7 +591,7 @@ namespace zorba { namespace xqxq {
     }
 
     Iterator_t lIterQuery = lQuery->iterator();
-    return ItemSequence_t(new EvaluateItemSequence(lIterQuery));
+    return ItemSequence_t(new EvaluateItemSequence(lIterQuery, lQueryID));
   }
 
   /*******************************************************************************************

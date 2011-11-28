@@ -298,9 +298,11 @@ namespace zorba { namespace xqxq {
       protected:
         Iterator_t theIterator;
 
+        String theQueryID;
+
       public:
-        EvaluateIterator(Iterator_t& aIter)
-          : theIterator(aIter)
+        EvaluateIterator(Iterator_t& aIter, String aQueryID)
+          : theIterator(aIter), theQueryID(aQueryID)
         {
         }
 
@@ -333,8 +335,8 @@ namespace zorba { namespace xqxq {
     EvaluateIterator_t theIter; 
 
   public:
-    EvaluateItemSequence(Iterator_t& aIter)
-      :theIter (new EvaluateIterator(aIter))
+    EvaluateItemSequence(Iterator_t& aIter, String& aQueryID)
+      :theIter (new EvaluateIterator(aIter, aQueryID))
     {
       
     }
