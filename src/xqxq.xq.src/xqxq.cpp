@@ -330,16 +330,10 @@ namespace zorba { namespace xqxq {
 
     XQuery_t lQuery = getQuery(aDctx, lQueryID);
 
-    bool lIsContextItemBound;
-    try
-    {
-      lIsContextItemBound = lQuery->getDynamicContext()->isBoundContextItem();
-    }
-    catch (ZorbaException& ze)
-    {
-      XQXQFunction::throwError(ze.diagnostic().qname().localname(), ze.diagnostic().message()); 
-    }
-    return ItemSequence_t(new SingletonItemSequence(XQXQModule::getItemFactory()->createBoolean(lIsContextItemBound)));
+    bool lIsContextItemBound = lQuery->getDynamicContext()->isBoundContextItem();
+
+    return ItemSequence_t(new SingletonItemSequence(
+          XQXQModule::getItemFactory()->createBoolean(lIsContextItemBound)));
   }
 
   /*******************************************************************************************
@@ -363,7 +357,9 @@ namespace zorba { namespace xqxq {
     }
     catch (ZorbaException& ze)
     {
-      XQXQFunction::throwError(ze.diagnostic().qname().localname(), ze.diagnostic().message());  
+      if (ze.diagnostic() == zerr::ZAPI0011_ELEMENT_NOT_DECLARED)
+        XQXQFunction::throwError("UndeclaredVariable", ze.what());  
+      throw; // should not happen
     }
     return ItemSequence_t(new SingletonItemSequence(XQXQModule::getItemFactory()->createBoolean(lIsBoundVariable)));
   
@@ -436,6 +432,7 @@ namespace zorba { namespace xqxq {
 
     XQuery_t lQuery = getQuery(aDctx, lQueryID);
 
+    // shouldn't raise errors
     Item lItemContext = XQXQFunction::getItemArgument(aArgs, 1);
     lQuery->getDynamicContext()->setContextItem(lItemContext);
 
@@ -486,7 +483,14 @@ namespace zorba { namespace xqxq {
 
     Iterator_t lVarValue = XQXQFunction::getIterArgument(aArgs, 2); 
 
-    lQuery->getDynamicContext()->setVariable(lVarQName.getNamespace(), lVarQName.getLocalName() , lVarValue);
+    if (!lQuery->getDynamicContext()->setVariable(
+          lVarQName.getNamespace(), lVarQName.getLocalName() , lVarValue))
+    {
+      std::ostringstream lMsg;
+      lMsg << "{" << lVarQName.getNamespace() << "}" << lVarQName.getLocalName()
+        << ": undefined variable";
+      throwError("UndeclaredVariable", lMsg.str());
+    }
 
     return ItemSequence_t(new EmptySequence());
   }
@@ -502,14 +506,11 @@ namespace zorba { namespace xqxq {
     }
     catch (ZorbaException& e)
     {
-      const zorba::Diagnostic& d = e.diagnostic();
-      std::ostringstream message;
-      message << e;
-      std::string msg = message.str().substr(message.str().find(")")+1);
-
       std::ostringstream err;
-      err << "The query evaluated using xqxq:evaluate raised an error as follows" << " \"(" << theQueryID << ")" << msg << ":" << d.message() << "\"";
-      Item errQName = XQXQModule::getItemFactory()->createQName(d.qname().ns(), d.qname().localname());
+      err << "The query " << "(" << theQueryID << ") evaluated using xqxq:evaluate raised an error:"
+          << e.what();
+      Item errQName = XQXQModule::getItemFactory()->createQName(
+          e.diagnostic().qname().ns(), e.diagnostic().qname().localname());
       throw USER_EXCEPTION(errQName, err.str());
     }
   }

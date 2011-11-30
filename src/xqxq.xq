@@ -74,6 +74,8 @@ declare function xqxq:is-bound-context-item($query-key as xs:anyURI)
  :
  : @error xqxq:NoQueryMatch if no query with the given identifier
  :   was prepared.
+ : @error xqxq:UndeclaredVariable if the given variable is not declared
+ :   in the query.
  :)
 declare function xqxq:is-bound-variable($query-key as xs:anyURI, $var-name as 
   xs:QName) as xs:boolean  external;
@@ -151,6 +153,8 @@ declare %ann:sequential function xqxq:bind-context-item($query-key as xs:anyURI,
  :
  : @error xqxq:NoQueryMatch if no query with the given identifier
  :   was prepared.
+ : @error xqxq:UndeclaredVariable if the given variable is not declared
+ :   in the query.
  :)
 declare %ann:sequential function xqxq:bind-variable($query-key as xs:anyURI,
   $var as xs:QName, $value as item()*) as empty-sequence() external ;
