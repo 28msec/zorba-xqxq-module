@@ -251,14 +251,22 @@ namespace zorba { namespace xqxq {
     {
       lQuery = lZorba->compileQuery(lQueryString);
     }
+    catch (XQueryException& xe)
+    {
+      std::ostringstream err;
+      err << "The query compiled using xqxq:prepare-main-module raised an error at"
+          << " line " << xe.source_line() << " column " << xe.source_column() << ": " << xe.what();
+      Item errQName = XQXQModule::getItemFactory()->createQName(
+          xe.diagnostic().qname().ns(), xe.diagnostic().qname().localname());
+      throw USER_EXCEPTION(errQName, err.str());
+    }
     catch (ZorbaException& e)
     {
-      const zorba::Diagnostic& d = e.diagnostic();
       std::ostringstream err;
-      err << e;
+      err << "The query compiled using xqxq:prepare-main-module raised an error: "
+          << e.what();
       Item errQName = XQXQModule::getItemFactory()->createQName(
-        d.qname().ns(), d.qname().localname()
-      );
+          e.diagnostic().qname().ns(), e.diagnostic().qname().localname());
       throw USER_EXCEPTION(errQName, err.str());
     }
 
@@ -304,14 +312,22 @@ namespace zorba { namespace xqxq {
     {
       lZorba->compileQuery(lQueryString, hints);
     }
-    catch(ZorbaException& e)
+    catch (XQueryException& xe)
     {
-      const zorba::Diagnostic& d = e.diagnostic();
       std::ostringstream err;
-      err << e;
+      err << "The query compiled using xqxq:prepare-library-module raised an error at"
+          << " line " << xe.source_line() << " column " << xe.source_column() << ": " << xe.what();
       Item errQName = XQXQModule::getItemFactory()->createQName(
-        d.qname().ns(), d.qname().localname()
-      );
+          xe.diagnostic().qname().ns(), xe.diagnostic().qname().localname());
+      throw USER_EXCEPTION(errQName, err.str());
+    }
+    catch (ZorbaException& e)
+    {
+      std::ostringstream err;
+      err << "The query compiled using xqxq:prepare-main-query raised an error: "
+          << e.what();
+      Item errQName = XQXQModule::getItemFactory()->createQName(
+          e.diagnostic().qname().ns(), e.diagnostic().qname().localname());
       throw USER_EXCEPTION(errQName, err.str());
     }
     return ItemSequence_t(new EmptySequence());
@@ -504,10 +520,19 @@ namespace zorba { namespace xqxq {
     {
       return theIterator->next(aItem);
     }
+    catch (XQueryException& xe)
+    {
+      std::ostringstream err;
+      err << "The query " << "(" << theQueryID << ") evaluated using xqxq:evaluate raised an error at"
+          << " line " << xe.source_line() << " column " << xe.source_column() << ": " << xe.what();
+      Item errQName = XQXQModule::getItemFactory()->createQName(
+          xe.diagnostic().qname().ns(), xe.diagnostic().qname().localname());
+      throw USER_EXCEPTION(errQName, err.str());
+    }
     catch (ZorbaException& e)
     {
       std::ostringstream err;
-      err << "The query " << "(" << theQueryID << ") evaluated using xqxq:evaluate raised an error:"
+      err << "The query " << "(" << theQueryID << ") evaluated using xqxq:evaluate raised an error at"
           << e.what();
       Item errQName = XQXQModule::getItemFactory()->createQName(
           e.diagnostic().qname().ns(), e.diagnostic().qname().localname());
