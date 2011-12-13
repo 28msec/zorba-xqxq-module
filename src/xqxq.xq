@@ -1,5 +1,12 @@
 xquery version "3.0";
 
+(:~
+ : This module contains functions to compile and evaluate XQuery
+ : programs. Also, it contains function that allow to parameterize
+ : the static or dynamic evaluation phase.
+ :
+ : @project programming languages/xquery
+ :)
 module namespace xqxq = 'http://www.zorba-xquery.com/modules/xqxq';
 
 declare namespace ann = "http://www.zorba-xquery.com/annotations";
