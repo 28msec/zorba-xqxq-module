@@ -20,6 +20,7 @@ xquery version "3.0";
  : programs. Also, it contains function that allow to parameterize
  : the static or dynamic evaluation phase.
  :
+ : @author Juan Zacarias
  : @project programming languages/xquery
  :)
 module namespace xqxq = 'http://www.zorba-xquery.com/modules/xqxq';
@@ -91,6 +92,7 @@ declare function xqxq:is-bound-context-item($query-key as xs:anyURI)
  : execution of the query referred to by the given query identifier.
  :
  : @param $query-key the identifier for a compiled query
+ : @param $var-name the name of the variable
  :
  : @return true if the variable is bound, false otherwise.
  :
