@@ -25,7 +25,7 @@ xquery version "3.0";
  :)
 module namespace xqxq = 'http://www.zorba-xquery.com/modules/xqxq';
 
-declare namespace ann = "http://www.zorba-xquery.com/annotations";
+declare namespace an = "http://www.zorba-xquery.com/annotations";
 
 declare namespace ver = "http://www.zorba-xquery.com/options/versioning";
 declare option ver:module-version "1.0";
@@ -52,7 +52,7 @@ declare option ver:module-version "1.0";
  : of the query. For example, err:XPST0003 if the given XQuery program could
  : not be parsed.
  :)
-declare %ann:sequential function xqxq:prepare-main-module($main-module-text as xs:string) as 
+declare %an:sequential function xqxq:prepare-main-module($main-module-text as xs:string) as 
   xs:anyURI external;
 
 (:~
@@ -69,7 +69,7 @@ declare %ann:sequential function xqxq:prepare-main-module($main-module-text as x
  : of the library module. For example, err:XPST0003 if the given XQuery library
  : module could not be parsed.
  :)
-declare %ann:sequential function xqxq:prepare-library-module($library-module-text as xs:string) as 
+declare %an:sequential function xqxq:prepare-library-module($library-module-text as xs:string) as 
   empty-sequence() external ;
 
 (:~
@@ -160,7 +160,7 @@ declare function xqxq:is-sequential($query-key as xs:anyURI) as
  : @error xqxq:NoQueryMatch if no query with the given identifier
  :   was prepared.
  :)
-declare %ann:sequential function xqxq:bind-context-item($query-key as xs:anyURI,
+declare %an:sequential function xqxq:bind-context-item($query-key as xs:anyURI,
   $dot as item()) as empty-sequence() external ;
 
 (:~
@@ -180,7 +180,7 @@ declare %ann:sequential function xqxq:bind-context-item($query-key as xs:anyURI,
  : @error xqxq:UndeclaredVariable if the given variable is not declared
  :   in the query.
  :)
-declare %ann:sequential function xqxq:bind-variable($query-key as xs:anyURI,
+declare %an:sequential function xqxq:bind-variable($query-key as xs:anyURI,
   $var as xs:QName, $value as item()*) as empty-sequence() external ;
 
 
@@ -247,7 +247,7 @@ declare updating function xqxq:evaluate-updating($query-key as xs:anyURI) extern
  :   given query.
  :
  :)
-declare %ann:sequential function xqxq:evaluate-sequential($query-key as
+declare %an:sequential function xqxq:evaluate-sequential($query-key as
   xs:string) as item()* external;
   
 (:~ 
@@ -263,5 +263,5 @@ declare %ann:sequential function xqxq:evaluate-sequential($query-key as
  :   was prepared.
  :
  :)
-declare %ann:sequential function xqxq:delete-query($query-key as xs:anyURI) as
+declare %an:sequential function xqxq:delete-query($query-key as xs:anyURI) as
   empty-sequence() external;
