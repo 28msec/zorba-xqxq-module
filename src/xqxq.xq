@@ -55,6 +55,9 @@ declare option ver:module-version "1.0";
 declare %an:sequential function xqxq:prepare-main-module($main-module-text as xs:string) as 
   xs:anyURI external;
 
+declare %an:sequential function xqxq:prepare-main-module($main-module-text as xs:string, $function as xs:QName) as 
+  xs:anyURI external;
+
 (:~
  : This function compiles a given XQuery library module. It can be used
  : to compile-check a module. 
