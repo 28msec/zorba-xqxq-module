@@ -55,6 +55,57 @@ declare option ver:module-version "1.0";
 declare %an:sequential function xqxq:prepare-main-module($main-module-text as xs:string) as 
   xs:anyURI external;
 
+(:~
+ : The function prepares a given XQuery program for execution.
+ : If the program was successfully compiled, the function returns an
+ : identifier as xs:anyURI. This URI can be passed to other functions
+ : of this module (e.g. to actually evaluate the program). The URI
+ : is opaque and its lilfetime is bound by the lifetime of the XQuery
+ : program that invoked this function. Further reference or uses
+ : of the identifier lead to unexpected results.
+ : 
+ : Important notes regarding the second parameter of the function.
+ :
+ : The second parameter is the xs:QName of a function describing the new url
+ : resolver. The url resolver function described must recive 2 parameters. 
+ : A $namespace as xs:string that will contain the url to be resolved.
+ : A $data-entity as xs:string that will contain the type of resolving needed
+ : this can be 2 values "module" and "schema".
+ : The function described must return an empty sequence when the specified $namespace
+ : or $data-entity are not the ones to be resolved.
+ :
+ : Example:
+ :   
+ : declare namespace resolver = 'http://www.zorba-xquery.com/modules/xqxq/url-resolver';
+ : declare function resolver:url-resolver($namespace as xs:string, $entity as xs:string)
+ : {
+ :  if($namespace = 'http://test.xq')
+ :  then "module namespace test = 'http://test'; declare function test:foo(){'foo'};"
+ :  else ()
+ : };
+ :
+ : The url resolver function's namespace, function's name, and parameters' naming are
+ : not restricted by the module.
+ :
+ : The url resolver function's return type is not restricted, it could be a string, a sequence,
+ : a node, etc. All the outputs types are to be serialized as a string.
+ :
+ : Successfully prepared queries need to be deleted by passing the resulting
+ : identifier to the xqxq:delete-query function of this module.
+ :
+ : @param $main-module-text the XQuery program that should be prepared.
+ :   The program needs to be a XQuery main module.
+ :
+ : @param $function the xs:QName of a function that is going to be used
+ :   as a url resolver.
+ :
+ : @return an identifier for the compiled program that can be passed
+ :   as arguments to other functions of this module.
+ :
+ : @error any (static or type) error that may be raised during the compilation
+ : of the query. For example, err:XPST0003 if the given XQuery program could
+ : not be parsed.
+ :)
 declare %an:sequential function xqxq:prepare-main-module($main-module-text as xs:string, $function as xs:QName) as 
   xs:anyURI external;
 
