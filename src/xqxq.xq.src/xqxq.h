@@ -146,6 +146,24 @@ namespace zorba { namespace xqxq {
 
       };
 
+      class XQXQURIMapper : public URIMapper
+      {
+        protected:
+        Item theFunction;
+        StaticContext_t theCtx;
+
+        public:
+        XQXQURIMapper(Item& aFunction, StaticContext_t& aSctx) : URIMapper(), theFunction(aFunction), theCtx(aSctx) {}
+        
+        virtual ~XQXQURIMapper(){ }
+        
+        virtual void mapURI(
+          const zorba::String aUri,
+          EntityData const* aEntityData,
+          std::vector<zorba::String>& oUris);
+
+      };
+
       static String
         getUUID();
 

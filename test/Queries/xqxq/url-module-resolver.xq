@@ -7,5 +7,5 @@ declare function resolver:url-resolver($namespace as xs:string, $entity as xs:st
   else ()
 };
 
-variable $queryID := xqxq:prepare-main-module("import module namespace test = 'http://test'; test:foo()", fn:QName('http://www.zorba-xquery.com/modules/xqxq/url-resolver', 'resolver:url-resolver'));
+variable $queryID := xqxq:prepare-main-module("import module namespace test = 'http://test'; test:foo()", fn:QName('http://www.zorba-xquery.com/modules/xqxq/url-resolver', 'resolver:url-resolver'), ());
 xqxq:evaluate($queryID)                                                                             

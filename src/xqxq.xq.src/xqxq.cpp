@@ -231,6 +231,51 @@ namespace zorba { namespace xqxq {
     delete aStream;
   }  
   
+  void 
+    PrepareMainModuleFunction::XQXQURIMapper::mapURI(
+     String aUri,
+     EntityData const* aEntityData,
+     std::vector<String>& oUris)
+  {
+    //Create entityData string to send to the new url resolver
+    String lDataKind;
+    switch (aEntityData->getKind())
+    {
+      case EntityData::SCHEMA:
+        lDataKind = "schema";
+        break;
+      case EntityData::MODULE:
+        lDataKind = "module";
+        break;
+      default:
+        break;
+    }
+
+    //construct the arguments for the url resolver
+    std::vector<ItemSequence_t> lArgs;
+    ItemSequence_t lSeq1 = new SingletonItemSequence(XQXQModule::getItemFactory()->createString(aUri));
+    ItemSequence_t lSeq2 = new SingletonItemSequence(XQXQModule::getItemFactory()->createString(lDataKind));
+    lArgs.push_back(lSeq1);
+    lArgs.push_back(lSeq2);
+
+    //invoke the function using the arguments generated and the QName of the function
+    ItemSequence_t lResult = theCtx->invoke(theFunction, lArgs);
+
+    //Check if the result is an empty sequence by creating an Iterator, this is cheaper than serializing the result
+    //and then checking if it was empty.
+    Iterator_t lIter = lResult->getIterator();
+    Item lItem;
+    lIter->open();
+    while (lIter->next(lItem))
+    {
+      std::cout << lItem.getStringValue() << std::endl;
+      oUris.push_back(lItem.getStringValue());
+    }
+    lIter->close();
+
+  }
+      
+
   Resource*
     PrepareMainModuleFunction::XQXQURLResolver::resolveURL(
     const String& aUrl,
@@ -249,6 +294,8 @@ namespace zorba { namespace xqxq {
       default:
         break;
     }
+
+    std::cout << aUrl << std::endl;
 
     //construct the arguments for the url resolver
     std::vector<ItemSequence_t> lArgs;
@@ -284,20 +331,6 @@ namespace zorba { namespace xqxq {
     //return resource
     return StreamResource::create(new std::istringstream(lSerResult.str()), &streamReleaser);
 
-    /*
-    // we have only one module
-       if (aEntityData->getKind() == EntityData::MODULE &&
-         aUrl == "http://www.zorba-xquery.com/modules/xqxq/test") 
-       {
-         return StreamResource::create
-           (new std::istringstream
-             ("module namespace test = 'http://www.zorba-xquery.com/modules/xqxq/test'; "
-              "declare function test:foo() { 'foo' };"), &streamReleaser);
-       }
-       else {
-         return NULL;
-       }
-    */
   }
 
   zorba::ItemSequence_t
@@ -308,6 +341,7 @@ namespace zorba { namespace xqxq {
   {
     DynamicContext* lDynCtx = const_cast<DynamicContext*>(aDctx);
     StaticContext_t lSctxChild = aSctx->createChildContext();
+    StaticContext_t lMapperSctx = aSctx->createChildContext();
    
     QueryMap* lQueryMap;
     if(!(lQueryMap = dynamic_cast<QueryMap*>(lDynCtx->getExternalFunctionParameter("xqxqQueryMap"))))
@@ -324,16 +358,32 @@ namespace zorba { namespace xqxq {
     
     StaticContext_t ltempSctx = lZorba->createStaticContext();
     XQXQURLResolver* lResolver = NULL;
+    XQXQURIMapper* lMapper = NULL;
+
+    if ( aArgs.size() > 2 )
+    {
+      Item lMapperQName = getItemArgument(aArgs, 2);
+      if (!lMapperQName.isNull())
+      {
+        if (lMapperSctx->containsFunction(lMapperQName.getNamespace(), lMapperQName.getLocalName(), 2))
+          {
+            lMapper = new XQXQURIMapper(lMapperQName, lSctxChild);      
+            ltempSctx->registerURIMapper(lMapper);
+          }
+      }
+    }
 
     if ( aArgs.size() > 1 )
     {
-      Item lFunctionQname = getItemArgument(aArgs, 1);
-      
-      if (lSctxChild->containsFunction(lFunctionQname.getNamespace(), lFunctionQname.getLocalName(), 2))
+      Item lResolverQName = getItemArgument(aArgs, 1);
+      if (!lResolverQName.isNull())
+      {
+        if (lSctxChild->containsFunction(lResolverQName.getNamespace(), lResolverQName.getLocalName(), 2))
         {
-          lResolver = new XQXQURLResolver(lFunctionQname, lSctxChild);      
+          lResolver = new XQXQURLResolver(lResolverQName, lSctxChild);      
           ltempSctx->registerURLResolver(lResolver);
         }
+      }
 
     }
 
@@ -367,6 +417,8 @@ namespace zorba { namespace xqxq {
     
     if (lResolver)
       delete lResolver;
+    if (lMapper)
+      delete lMapper;
 
     return ItemSequence_t(new SingletonItemSequence(XQXQModule::getItemFactory()->createAnyURI(lUUID)));
   }

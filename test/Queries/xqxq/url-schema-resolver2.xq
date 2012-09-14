@@ -19,5 +19,5 @@ declare variable $schema := doc("test.xsd");
 ddl:create($coll);
 
 dml:apply-insert-nodes-first($coll, $schema);
-variable $query-key := xqxq:prepare-main-module("import schema namespace test = 'http://test'; validate {<test:test><test:subtest>a</test:subtest><test:subtest2>a</test:subtest2></test:test>}", fn:QName('http://www.zorba-xquery.com/modules/xqxq/url-resolver', 'resolver:url-resolver'));
+variable $query-key := xqxq:prepare-main-module("import schema namespace test = 'http://test'; validate {<test:test><test:subtest>a</test:subtest><test:subtest2>a</test:subtest2></test:test>}", fn:QName('http://www.zorba-xquery.com/modules/xqxq/url-resolver', 'resolver:url-resolver'), ());
 xqxq:evaluate($query-key)                                                

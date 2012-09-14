@@ -90,6 +90,27 @@ declare %an:sequential function xqxq:prepare-main-module($main-module-text as xs
  : The url resolver function's return type is not restricted, it could be a string, a sequence,
  : a node, etc. All the outputs types are to be serialized as a string.
  :
+ : The third parameter is th xs:QName of a function describing a uri mapper.
+ : The uri mapper function just like the url resolver has 2 parameters.
+ : A $namespace as xs:string that will contain the url to be resolved.
+ : A $data-entity as xs:string that will contain the type of resolving needed
+ : this can be 2 values "module" and "schema".
+ : The uri mapper must return an empty sequence when the specified $namesapce or $data-entity
+ : are not to be mapped. Unlike the url resolver this function must return a sequence of strings.
+ :
+ : Example:
+ :
+ : declare namespace mapper = 'http://www.zorba-xquery.com/modules/xqxq/uri-mapper';
+ : declare function mapper:uri-mapper($namespace as xs:string, $entity as xs:string)
+ : {
+ :  if($namespace = 'http://test')
+ :  then ("http://www.zorba-xquery.com/test", "http://foo.com/schema/test")
+ :  else ()
+ : };
+ :
+ : The uri mapper function's namespace, function's name, and parameters' naming are
+ : not restricted by the module.
+ :
  : Successfully prepared queries need to be deleted by passing the resulting
  : identifier to the xqxq:delete-query function of this module.
  :
@@ -106,7 +127,7 @@ declare %an:sequential function xqxq:prepare-main-module($main-module-text as xs
  : of the query. For example, err:XPST0003 if the given XQuery program could
  : not be parsed.
  :)
-declare %an:sequential function xqxq:prepare-main-module($main-module-text as xs:string, $function as xs:QName) as 
+declare %an:sequential function xqxq:prepare-main-module($main-module-text as xs:string, $resolver as xs:QName?, $mapper as xs:QName?) as 
   xs:anyURI external;
 
 (:~
