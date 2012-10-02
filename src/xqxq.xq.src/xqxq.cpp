@@ -226,6 +226,80 @@ namespace zorba { namespace xqxq {
 
   /*******************************************************************************************
   *******************************************************************************************/
+  static void streamReleaser(std::istream* aStream)
+  {
+    delete aStream;
+  }  
+  
+  Resource*
+    PrepareMainModuleFunction::XQXQURLResolver::resolveURL(
+    const String& aUrl,
+    EntityData const* aEntityData)
+  { 
+    //Create entityData string to send to the new url resolver
+    String lDataKind;
+    switch (aEntityData->getKind())
+    {
+      case EntityData::SCHEMA:
+        lDataKind = "schema";
+        break;
+      case EntityData::MODULE:
+        lDataKind = "module";
+        break;
+      default:
+        break;
+    }
+
+    //construct the arguments for the url resolver
+    std::vector<ItemSequence_t> lArgs;
+    ItemSequence_t lSeq1 = new SingletonItemSequence(XQXQModule::getItemFactory()->createString(aUrl));
+    ItemSequence_t lSeq2 = new SingletonItemSequence(XQXQModule::getItemFactory()->createString(lDataKind));
+    lArgs.push_back(lSeq1);
+    lArgs.push_back(lSeq2);
+
+    //invoke the function using the arguments generated and the QName of the function
+    ItemSequence_t lResult = theCtx->invoke(theFunction, lArgs);
+
+    //Check if the result is an empty sequence by creating an Iterator, this is cheaper than serializing the result
+    //and then checking if it was empty.
+    Iterator_t lIter = lResult->getIterator();
+    Item lItem;
+    lIter->open();
+    lIter->next(lItem);
+    lIter->close();
+    if (lItem.isNull())
+      return NULL;
+
+    //Serialize resulting sequence of the resolver
+    Zorba_SerializerOptions_t lOpt;
+    if (lItem.isNode())
+      lOpt.ser_method = ZORBA_SERIALIZATION_METHOD_XML;
+    else
+      lOpt.ser_method = ZORBA_SERIALIZATION_METHOD_TEXT;
+    lOpt.omit_xml_declaration = ZORBA_OMIT_XML_DECLARATION_YES;
+    Serializer_t lSer = Serializer::createSerializer(lOpt);
+    std::stringstream lSerResult;
+    lSer->serialize(lResult, lSerResult);
+
+    //return resource
+    return StreamResource::create(new std::istringstream(lSerResult.str()), &streamReleaser);
+
+    /*
+    // we have only one module
+       if (aEntityData->getKind() == EntityData::MODULE &&
+         aUrl == "http://www.zorba-xquery.com/modules/xqxq/test") 
+       {
+         return StreamResource::create
+           (new std::istringstream
+             ("module namespace test = 'http://www.zorba-xquery.com/modules/xqxq/test'; "
+              "declare function test:foo() { 'foo' };"), &streamReleaser);
+       }
+       else {
+         return NULL;
+       }
+    */
+  }
+
   zorba::ItemSequence_t
     PrepareMainModuleFunction::evaluate(
       const Arguments_t& aArgs,
@@ -233,6 +307,7 @@ namespace zorba { namespace xqxq {
       const zorba::DynamicContext* aDctx) const 
   {
     DynamicContext* lDynCtx = const_cast<DynamicContext*>(aDctx);
+    StaticContext_t lSctxChild = aSctx->createChildContext();
    
     QueryMap* lQueryMap;
     if(!(lQueryMap = dynamic_cast<QueryMap*>(lDynCtx->getExternalFunctionParameter("xqxqQueryMap"))))
@@ -247,9 +322,24 @@ namespace zorba { namespace xqxq {
     
     XQuery_t lQuery;
     
+    StaticContext_t ltempSctx = lZorba->createStaticContext();
+    XQXQURLResolver* lResolver = NULL;
+
+    if ( aArgs.size() > 1 )
+    {
+      Item lFunctionQname = getItemArgument(aArgs, 1);
+      
+      if (lSctxChild->containsFunction(lFunctionQname.getNamespace(), lFunctionQname.getLocalName(), 2))
+        {
+          lResolver = new XQXQURLResolver(lFunctionQname, lSctxChild);      
+          ltempSctx->registerURLResolver(lResolver);
+        }
+
+    }
+
     try
     {
-      lQuery = lZorba->compileQuery(lQueryString);
+      lQuery = lZorba->compileQuery(lQueryString, ltempSctx);
     }
     catch (XQueryException& xe)
     {
@@ -269,6 +359,7 @@ namespace zorba { namespace xqxq {
           e.diagnostic().qname().ns(), e.diagnostic().qname().localname());
       throw USER_EXCEPTION(errQName, err.str());
     }
+<<<<<<< TREE
     
     uuid lUUID;
     uuid::create(&lUUID);
@@ -281,6 +372,35 @@ namespace zorba { namespace xqxq {
     lQueryMap->storeQuery(lStrUUID, lQuery);
 
     return ItemSequence_t(new SingletonItemSequence(XQXQModule::getItemFactory()->createAnyURI(lStrUUID)));
+=======
+
+    String lUUID = getUUID();
+    
+    lQueryMap->storeQuery(lUUID, lQuery);
+    
+    
+    if (lResolver)
+      delete lResolver;
+
+    return ItemSequence_t(new SingletonItemSequence(XQXQModule::getItemFactory()->createAnyURI(lUUID)));
+  }
+
+  String 
+    PrepareMainModuleFunction::S4 ()
+  {
+    unsigned long randNum = (1 + rand() * 0x10000)|0;
+    char* randBuff= new char[20];
+    sprintf(randBuff, "%lx", randNum);
+    String lString(randBuff);
+    delete[] randBuff;
+    return lString;
+  }
+
+  String 
+    PrepareMainModuleFunction::getUUID()
+  {
+    return (String("urn:uuid:") + S4()+"-"+S4()+"-"+S4()+"-"+S4()+"-"+S4()+S4());
+>>>>>>> MERGE-SOURCE
   }
 
   /*******************************************************************************************

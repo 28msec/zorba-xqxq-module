@@ -49,6 +49,7 @@ namespace zorba { namespace xqxq {
 
   };
 
+
   class QueryMap : public ExternalFunctionParameter{
     private:
       typedef std::map<String, XQuery_t> QueryMap_t;
@@ -117,7 +118,7 @@ namespace zorba { namespace xqxq {
     public:
       PrepareMainModuleFunction(const XQXQModule* aModule) : XQXQFunction(aModule) {}
 
-      virtual ~PrepareMainModuleFunction(){}
+      virtual ~PrepareMainModuleFunction(){  }
       
       virtual zorba::String
         getLocalName() const { return "prepare-main-module"; }
@@ -126,6 +127,34 @@ namespace zorba { namespace xqxq {
         evaluate(const Arguments_t&,
                  const zorba::StaticContext*,
                  const zorba::DynamicContext*) const;
+<<<<<<< TREE
+=======
+
+      protected:
+
+      class XQXQURLResolver : public URLResolver
+      {
+        protected:
+        Item theFunction;
+        StaticContext_t theCtx;
+
+        public:
+        XQXQURLResolver(Item& aFunction, StaticContext_t& aSctx) : URLResolver(), theFunction(aFunction), theCtx(aSctx) {}
+        
+        virtual ~XQXQURLResolver(){ }
+      
+        virtual Resource* resolveURL(const String& aUrl,
+          EntityData const* aEntityData);
+
+      };
+
+      static String
+        getUUID();
+
+      static String
+        S4();
+
+>>>>>>> MERGE-SOURCE
   };
 
   class PrepareLibraryModuleFunction : public XQXQFunction{
