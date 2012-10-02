@@ -10,7 +10,7 @@
 #include <zorba/xquery.h>
 #include <time.h>
 #include <stdio.h>
-
+#include <zorba/util/uuid.h>
 #include <vector>
 
 #include "xqxq.h"
@@ -269,29 +269,18 @@ namespace zorba { namespace xqxq {
           e.diagnostic().qname().ns(), e.diagnostic().qname().localname());
       throw USER_EXCEPTION(errQName, err.str());
     }
-
-    String lUUID = getUUID();
     
-    lQueryMap->storeQuery(lUUID, lQuery);
+    uuid lUUID;
+    uuid::create(&lUUID);
+    
+    std::stringstream lStream;
+    lStream << lUUID;
 
-    return ItemSequence_t(new SingletonItemSequence(XQXQModule::getItemFactory()->createAnyURI(lUUID)));
-  }
+    String lStrUUID = lStream.str();
+    
+    lQueryMap->storeQuery(lStrUUID, lQuery);
 
-  String 
-    PrepareMainModuleFunction::S4 ()
-  {
-    unsigned long randNum = (1 + rand() * 0x10000)|0;
-    char* randBuff= new char[20];
-    sprintf(randBuff, "%lx", randNum);
-    String lString(randBuff);
-    delete[] randBuff;
-    return lString;
-  }
-
-  String 
-    PrepareMainModuleFunction::getUUID()
-  {
-    return (String("urn:uuid:") + S4()+"-"+S4()+"-"+S4()+"-"+S4()+"-"+S4()+S4());
+    return ItemSequence_t(new SingletonItemSequence(XQXQModule::getItemFactory()->createAnyURI(lStrUUID)));
   }
 
   /*******************************************************************************************

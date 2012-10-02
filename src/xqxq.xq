@@ -21,7 +21,7 @@ xquery version "3.0";
  : the static or dynamic evaluation phase.
  :
  : @author Juan Zacarias
- : @project programming languages/xquery
+ : @project Zorba/Programming Languages/XQuery
  :)
 module namespace xqxq = 'http://www.zorba-xquery.com/modules/xqxq';
 
