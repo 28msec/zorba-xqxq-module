@@ -126,14 +126,6 @@ namespace zorba { namespace xqxq {
         evaluate(const Arguments_t&,
                  const zorba::StaticContext*,
                  const zorba::DynamicContext*) const;
-
-    protected:
-       static String
-         getUUID();
-
-       static String
-         S4();
-
   };
 
   class PrepareLibraryModuleFunction : public XQXQFunction{
