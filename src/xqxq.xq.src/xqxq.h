@@ -164,12 +164,6 @@ namespace zorba { namespace xqxq {
 
       };
 
-      static String
-        getUUID();
-
-      static String
-        S4();
-
   };
 
   class PrepareLibraryModuleFunction : public XQXQFunction{
