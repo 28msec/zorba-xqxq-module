@@ -127,8 +127,6 @@ namespace zorba { namespace xqxq {
         evaluate(const Arguments_t&,
                  const zorba::StaticContext*,
                  const zorba::DynamicContext*) const;
-<<<<<<< TREE
-=======
 
       protected:
 
@@ -148,13 +146,6 @@ namespace zorba { namespace xqxq {
 
       };
 
-      static String
-        getUUID();
-
-      static String
-        S4();
-
->>>>>>> MERGE-SOURCE
   };
 
   class PrepareLibraryModuleFunction : public XQXQFunction{

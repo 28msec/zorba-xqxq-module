@@ -359,8 +359,7 @@ namespace zorba { namespace xqxq {
           e.diagnostic().qname().ns(), e.diagnostic().qname().localname());
       throw USER_EXCEPTION(errQName, err.str());
     }
-<<<<<<< TREE
-    
+   
     uuid lUUID;
     uuid::create(&lUUID);
     
@@ -372,35 +371,6 @@ namespace zorba { namespace xqxq {
     lQueryMap->storeQuery(lStrUUID, lQuery);
 
     return ItemSequence_t(new SingletonItemSequence(XQXQModule::getItemFactory()->createAnyURI(lStrUUID)));
-=======
-
-    String lUUID = getUUID();
-    
-    lQueryMap->storeQuery(lUUID, lQuery);
-    
-    
-    if (lResolver)
-      delete lResolver;
-
-    return ItemSequence_t(new SingletonItemSequence(XQXQModule::getItemFactory()->createAnyURI(lUUID)));
-  }
-
-  String 
-    PrepareMainModuleFunction::S4 ()
-  {
-    unsigned long randNum = (1 + rand() * 0x10000)|0;
-    char* randBuff= new char[20];
-    sprintf(randBuff, "%lx", randNum);
-    String lString(randBuff);
-    delete[] randBuff;
-    return lString;
-  }
-
-  String 
-    PrepareMainModuleFunction::getUUID()
-  {
-    return (String("urn:uuid:") + S4()+"-"+S4()+"-"+S4()+"-"+S4()+"-"+S4()+S4());
->>>>>>> MERGE-SOURCE
   }
 
   /*******************************************************************************************
