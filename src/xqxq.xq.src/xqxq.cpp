@@ -295,8 +295,6 @@ namespace zorba { namespace xqxq {
         break;
     }
 
-    std::cout << aUrl << std::endl;
-
     //construct the arguments for the url resolver
     std::vector<ItemSequence_t> lArgs;
     ItemSequence_t lSeq1 = new SingletonItemSequence(XQXQModule::getItemFactory()->createString(aUrl));
@@ -331,6 +329,20 @@ namespace zorba { namespace xqxq {
     //return resource
     return StreamResource::create(new std::istringstream(lSerResult.str()), &streamReleaser);
 
+	/*
+    // we have only one module
+       if (aEntityData->getKind() == EntityData::MODULE &&
+         aUrl == "http://www.zorba-xquery.com/modules/xqxq/test") 
+       {
+         return StreamResource::create
+           (new std::istringstream
+             ("module namespace test = 'http://www.zorba-xquery.com/modules/xqxq/test'; "
+              "declare function test:foo() { 'foo' };"), &streamReleaser);
+       }
+       else {
+         return NULL;
+       }
+    */
   }
 
   zorba::ItemSequence_t
