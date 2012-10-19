@@ -253,13 +253,16 @@ namespace zorba { namespace xqxq {
 
     //construct the arguments for the url resolver
     std::vector<ItemSequence_t> lArgs;
+    ItemSequence_t lSeq0 = new SingletonItemSequence(theFunction);
     ItemSequence_t lSeq1 = new SingletonItemSequence(XQXQModule::getItemFactory()->createString(aUri));
     ItemSequence_t lSeq2 = new SingletonItemSequence(XQXQModule::getItemFactory()->createString(lDataKind));
+    lArgs.push_back(lSeq0);
     lArgs.push_back(lSeq1);
     lArgs.push_back(lSeq2);
 
-    //invoke the function using the arguments generated and the QName of the function
-    ItemSequence_t lResult = theCtx->invoke(theFunction, lArgs);
+    //invoke the HOF helper function using the arguments generated
+    Item lHofHelper = XQXQModule::getItemFactory()->createQName("http://www.zorba-xquery.com/modules/xqxq", "xqxq", "hof-invoker");
+    ItemSequence_t lResult = theCtx->invoke(lHofHelper, lArgs);
 
     //Check if the result is an empty sequence by creating an Iterator, this is cheaper than serializing the result
     //and then checking if it was empty.
@@ -297,13 +300,16 @@ namespace zorba { namespace xqxq {
 
     //construct the arguments for the url resolver
     std::vector<ItemSequence_t> lArgs;
+    ItemSequence_t lSeq0 = new SingletonItemSequence(theFunction);
     ItemSequence_t lSeq1 = new SingletonItemSequence(XQXQModule::getItemFactory()->createString(aUrl));
     ItemSequence_t lSeq2 = new SingletonItemSequence(XQXQModule::getItemFactory()->createString(lDataKind));
+    lArgs.push_back(lSeq0);
     lArgs.push_back(lSeq1);
     lArgs.push_back(lSeq2);
 
-    //invoke the function using the arguments generated and the QName of the function
-    ItemSequence_t lResult = theCtx->invoke(theFunction, lArgs);
+    //invoke the HOF helper function using the arguments generated
+    Item lHofHelper = XQXQModule::getItemFactory()->createQName("http://www.zorba-xquery.com/modules/xqxq", "xqxq", "hof-invoker");
+    ItemSequence_t lResult = theCtx->invoke(lHofHelper, lArgs);
 
     //Check if the result is an empty sequence by creating an Iterator, this is cheaper than serializing the result
     //and then checking if it was empty.
@@ -374,27 +380,21 @@ namespace zorba { namespace xqxq {
 
     if ( aArgs.size() > 2 )
     {
-      Item lMapperQName = getItemArgument(aArgs, 2);
-      if (!lMapperQName.isNull())
+      Item lMapperFunctionItem = getItemArgument(aArgs, 2);
+      if (!lMapperFunctionItem.isNull())
       {
-        if (lMapperSctx->containsFunction(lMapperQName.getNamespace(), lMapperQName.getLocalName(), 2))
-          {
-            lMapper = new XQXQURIMapper(lMapperQName, lSctxChild);      
-            ltempSctx->registerURIMapper(lMapper);
-          }
+        lMapper = new XQXQURIMapper(lMapperFunctionItem, lSctxChild);
+        ltempSctx->registerURIMapper(lMapper);
       }
     }
 
     if ( aArgs.size() > 1 )
     {
-      Item lResolverQName = getItemArgument(aArgs, 1);
-      if (!lResolverQName.isNull())
+      Item lResolverFunctionItem = getItemArgument(aArgs, 1);
+      if (!lResolverFunctionItem.isNull())
       {
-        if (lSctxChild->containsFunction(lResolverQName.getNamespace(), lResolverQName.getLocalName(), 2))
-        {
-          lResolver = new XQXQURLResolver(lResolverQName, lSctxChild);      
-          ltempSctx->registerURLResolver(lResolver);
-        }
+        lResolver = new XQXQURLResolver(lResolverFunctionItem, lSctxChild);
+        ltempSctx->registerURLResolver(lResolver);
       }
 
     }

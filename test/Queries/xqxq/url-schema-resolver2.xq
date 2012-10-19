@@ -6,6 +6,10 @@ import module namespace dml =
     "http://www.zorba-xquery.com/modules/store/dynamic/collections/w3c/dml";
 
 declare namespace resolver = 'http://www.zorba-xquery.com/modules/xqxq/url-resolver';
+declare namespace op = "http://www.zorba-xquery.com/options/features";
+declare namespace f = "http://www.zorba-xquery.com/features";
+declare option op:enable "f:hof";
+
 declare function resolver:url-resolver($namespace as xs:string, $entity as xs:string) {
   if ($entity = 'schema')
   then
@@ -19,5 +23,7 @@ declare variable $schema := doc("test.xsd");
 ddl:create($coll);
 
 dml:apply-insert-nodes-first($coll, $schema);
-variable $query-key := xqxq:prepare-main-module("import schema namespace test = 'http://test'; validate {<test:test><test:subtest>a</test:subtest><test:subtest2>a</test:subtest2></test:test>}", fn:QName('http://www.zorba-xquery.com/modules/xqxq/url-resolver', 'resolver:url-resolver'), ());
-xqxq:evaluate($query-key)                                                
+variable $query-key := xqxq:prepare-main-module(
+  "import schema namespace test = 'http://test'; validate {<test:test><test:subtest>a</test:subtest><test:subtest2>a</test:subtest2></test:test>}",
+  resolver:url-resolver#2, ());
+xqxq:evaluate($query-key)
