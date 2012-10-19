@@ -26,9 +26,12 @@ xquery version "3.0";
 module namespace xqxq = 'http://www.zorba-xquery.com/modules/xqxq';
 
 declare namespace an = "http://www.zorba-xquery.com/annotations";
-
 declare namespace ver = "http://www.zorba-xquery.com/options/versioning";
+declare namespace op = "http://www.zorba-xquery.com/options/features";
+declare namespace f = "http://www.zorba-xquery.com/features";
+
 declare option ver:module-version "1.0";
+declare option op:enable "f:hof";
 
 (:~
  : The function prepares a given XQuery program for execution.
@@ -53,6 +56,106 @@ declare option ver:module-version "1.0";
  : not be parsed.
  :)
 declare %an:sequential function xqxq:prepare-main-module($main-module-text as xs:string) as 
+  xs:anyURI external;
+
+(:~
+ : The function prepares a given XQuery program for execution.
+ : If the program was successfully compiled, the function returns an
+ : identifier as xs:anyURI. This URI can be passed to other functions
+ : of this module (e.g. to actually evaluate the program). The URI
+ : is opaque and its lilfetime is bound by the lifetime of the XQuery
+ : program that invoked this function. Further reference or uses
+ : of the identifier lead to unexpected results.
+ : 
+ : Important notes regarding the second and third parameters of the function:
+ : --------------------------------------------------------------------------
+ :
+ : These parameters allow you to specify a URL resolver and a URI mapper
+ : for Zorba to use when executing this query. See
+ : http://www.zorba-xquery.com/html/documentation/2.7.0/zorba/uriresolvers
+ :
+ : The second parameter is a function item for a URL
+ : resolver. The URL resolver function must recive 2 parameters:
+ :   A $namespace as xs:string that will contain the url to be resolved.
+ :   A $entity as xs:string that will contain the type of resolving needed;
+ :   this can be 2 values "module" and "schema".
+ : The function must return an empty sequence when the specified $namespace
+ : or $entity are not the ones to be resolved.
+ :
+ : Example:
+ :   
+ : declare function mymod:url-resolver($namespace as xs:string, $entity as xs:string)
+ : {
+ :  if($namespace = 'http://test.xq')
+ :  then "module namespace test = 'http://test'; declare function test:foo(){'foo'};"
+ :  else ()
+ : };
+ :
+ : The URL resolver function's namespace, name, and parameter naming are
+ : not restricted by XQXQ.
+ :
+ : The URL resolver function's return type is not restricted, it could be a string, a sequence,
+ : a node, etc. All the outputs types are to be serialized as a string.
+ :
+ : The third parameter is a function item for a URI mapper.
+ : The URI mapper function, just like the URL resolver, receives 2 parameters:
+ :   A $namespace as xs:string that will contain the URI to be mapped.
+ :   A $entity as xs:string that will contain the type of resolving needed;
+ :   this can be 2 values "module" and "schema".
+ : The URI mapper must return an empty sequence when the specified $namesapce or $entity
+ : are not to be mapped. Unlike the URL resolver this function must return a sequence of strings.
+ :
+ : Example:
+ :
+ : declare function mymod:uri-mapper($namespace as xs:string, $entity as xs:string)
+ : {
+ :  if($namespace = 'http://test')
+ :  then ("http://www.zorba-xquery.com/test", "http://foo.com/schema/test")
+ :  else ()
+ : };
+ :
+ : The URI mapper function's namespace, name, and parameter naming are
+ : not restricted by XQXQ.
+ :
+ : In order to pass the above URL resolver and URI mapper to this function,
+ : use the following syntax:
+ :
+ :   variable $queryID := xqxq:prepare-main-module("..query text..",
+ :      mymod:url-resolver#2, mymod:uri-mapper#2);
+ :
+ : That is, the QName of the function followed by "#2". This is XQuery
+ : "higher-order function" syntax, meaning the function with the specified
+ : QName which takes two arguments. Since URL resolvers and URI mappers
+ : must take two arguments, both will always be specified with "#2".
+ :
+ : Note that parameters 2 and 3 should be declared as follows:
+ :    as function($url as xs:string, $entity as xs:string) as item()
+ :    as function($uri as xs:string, $entity as xs:string) as xs:string*
+ : However Zorba's implementation of higher-order functions (HOF) is not
+ : yet complete enough to allow for this. When Zorba's HOF implementation
+ : is complete this function signature will be changed.
+ :
+ : Both the URL resolver and URI mapper functions are optional, meaning you
+ : may pass the empty-sequence () for either.
+ :
+ : Successfully prepared queries need to be deleted by passing the resulting
+ : identifier to the xqxq:delete-query function of this module.
+ :
+ : @param $main-module-text the XQuery program that should be prepared.
+ :   The program needs to be a XQuery main module.
+ :
+ : @param $resolver the URL resolver function.
+ : 
+ : @param $mapper the URI mapper function.
+ :
+ : @return an identifier for the compiled program that can be passed
+ :   as arguments to other functions of this module.
+ :
+ : @error any (static or type) error that may be raised during the compilation
+ : of the query. For example, err:XPST0003 if the given XQuery program could
+ : not be parsed.
+ :)
+declare %an:sequential function xqxq:prepare-main-module($main-module-text as xs:string, $resolver as item()?, $mapper as item()?) as 
   xs:anyURI external;
 
 (:~
@@ -265,3 +368,14 @@ declare %an:sequential function xqxq:evaluate-sequential($query-key as
  :)
 declare %an:sequential function xqxq:delete-query($query-key as xs:anyURI) as
   empty-sequence() external;
+
+
+(:~
+ : Internal helper function. Only necessary because of incomplete HOF
+ : support in Zorba.
+ :)
+declare %private function xqxq:hof-invoker($hof as item(),
+  $ns as xs:string, $entity as xs:string) as item()*
+{
+   $hof($ns, $entity)
+};

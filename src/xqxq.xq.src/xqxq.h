@@ -49,6 +49,7 @@ namespace zorba { namespace xqxq {
 
   };
 
+
   class QueryMap : public ExternalFunctionParameter{
     private:
       typedef std::map<String, XQuery_t> QueryMap_t;
@@ -117,7 +118,7 @@ namespace zorba { namespace xqxq {
     public:
       PrepareMainModuleFunction(const XQXQModule* aModule) : XQXQFunction(aModule) {}
 
-      virtual ~PrepareMainModuleFunction(){}
+      virtual ~PrepareMainModuleFunction(){  }
       
       virtual zorba::String
         getLocalName() const { return "prepare-main-module"; }
@@ -126,6 +127,43 @@ namespace zorba { namespace xqxq {
         evaluate(const Arguments_t&,
                  const zorba::StaticContext*,
                  const zorba::DynamicContext*) const;
+
+      protected:
+
+      class XQXQURLResolver : public URLResolver
+      {
+        protected:
+        Item theFunction;
+        StaticContext_t theCtx;
+
+        public:
+        XQXQURLResolver(Item& aFunction, StaticContext_t& aSctx) : URLResolver(), theFunction(aFunction), theCtx(aSctx) {}
+        
+        virtual ~XQXQURLResolver(){ }
+      
+        virtual Resource* resolveURL(const String& aUrl,
+          EntityData const* aEntityData);
+
+      };
+
+      class XQXQURIMapper : public URIMapper
+      {
+        protected:
+        Item theFunction;
+        StaticContext_t theCtx;
+
+        public:
+        XQXQURIMapper(Item& aFunction, StaticContext_t& aSctx) : URIMapper(), theFunction(aFunction), theCtx(aSctx) {}
+        
+        virtual ~XQXQURIMapper(){ }
+        
+        virtual void mapURI(
+          const zorba::String aUri,
+          EntityData const* aEntityData,
+          std::vector<zorba::String>& oUris);
+
+      };
+
   };
 
   class PrepareLibraryModuleFunction : public XQXQFunction{

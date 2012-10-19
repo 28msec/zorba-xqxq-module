@@ -226,6 +226,116 @@ namespace zorba { namespace xqxq {
 
   /*******************************************************************************************
   *******************************************************************************************/
+  static void streamReleaser(std::istream* aStream)
+  {
+    delete aStream;
+  }  
+  
+  void 
+    PrepareMainModuleFunction::XQXQURIMapper::mapURI(
+     String aUri,
+     EntityData const* aEntityData,
+     std::vector<String>& oUris)
+  {
+    //Create entityData string to send to the new url resolver
+    String lDataKind;
+    switch (aEntityData->getKind())
+    {
+      case EntityData::SCHEMA:
+        lDataKind = "schema";
+        break;
+      case EntityData::MODULE:
+        lDataKind = "module";
+        break;
+      default:
+        break;
+    }
+
+    //construct the arguments for the url resolver
+    std::vector<ItemSequence_t> lArgs;
+    ItemSequence_t lSeq0 = new SingletonItemSequence(theFunction);
+    ItemSequence_t lSeq1 = new SingletonItemSequence(XQXQModule::getItemFactory()->createString(aUri));
+    ItemSequence_t lSeq2 = new SingletonItemSequence(XQXQModule::getItemFactory()->createString(lDataKind));
+    lArgs.push_back(lSeq0);
+    lArgs.push_back(lSeq1);
+    lArgs.push_back(lSeq2);
+
+    //invoke the HOF helper function using the arguments generated
+    Item lHofHelper = XQXQModule::getItemFactory()->createQName("http://www.zorba-xquery.com/modules/xqxq", "xqxq", "hof-invoker");
+    ItemSequence_t lResult = theCtx->invoke(lHofHelper, lArgs);
+
+    //Check if the result is an empty sequence by creating an Iterator, this is cheaper than serializing the result
+    //and then checking if it was empty.
+    Iterator_t lIter = lResult->getIterator();
+    Item lItem;
+    lIter->open();
+    while (lIter->next(lItem))
+    {
+      std::cout << lItem.getStringValue() << std::endl;
+      oUris.push_back(lItem.getStringValue());
+    }
+    lIter->close();
+
+  }
+      
+
+  Resource*
+    PrepareMainModuleFunction::XQXQURLResolver::resolveURL(
+    const String& aUrl,
+    EntityData const* aEntityData)
+  { 
+    //Create entityData string to send to the new url resolver
+    String lDataKind;
+    switch (aEntityData->getKind())
+    {
+      case EntityData::SCHEMA:
+        lDataKind = "schema";
+        break;
+      case EntityData::MODULE:
+        lDataKind = "module";
+        break;
+      default:
+        break;
+    }
+
+    //construct the arguments for the url resolver
+    std::vector<ItemSequence_t> lArgs;
+    ItemSequence_t lSeq0 = new SingletonItemSequence(theFunction);
+    ItemSequence_t lSeq1 = new SingletonItemSequence(XQXQModule::getItemFactory()->createString(aUrl));
+    ItemSequence_t lSeq2 = new SingletonItemSequence(XQXQModule::getItemFactory()->createString(lDataKind));
+    lArgs.push_back(lSeq0);
+    lArgs.push_back(lSeq1);
+    lArgs.push_back(lSeq2);
+
+    //invoke the HOF helper function using the arguments generated
+    Item lHofHelper = XQXQModule::getItemFactory()->createQName("http://www.zorba-xquery.com/modules/xqxq", "xqxq", "hof-invoker");
+    ItemSequence_t lResult = theCtx->invoke(lHofHelper, lArgs);
+
+    //Check if the result is an empty sequence by creating an Iterator, this is cheaper than serializing the result
+    //and then checking if it was empty.
+    Iterator_t lIter = lResult->getIterator();
+    Item lItem;
+    lIter->open();
+    lIter->next(lItem);
+    lIter->close();
+    if (lItem.isNull())
+      return NULL;
+
+    //Serialize resulting sequence of the resolver
+    Zorba_SerializerOptions_t lOpt;
+    if (lItem.isNode())
+      lOpt.ser_method = ZORBA_SERIALIZATION_METHOD_XML;
+    else
+      lOpt.ser_method = ZORBA_SERIALIZATION_METHOD_TEXT;
+    lOpt.omit_xml_declaration = ZORBA_OMIT_XML_DECLARATION_YES;
+    Serializer_t lSer = Serializer::createSerializer(lOpt);
+    std::stringstream lSerResult;
+    lSer->serialize(lResult, lSerResult);
+
+    //return resource
+    return StreamResource::create(new std::istringstream(lSerResult.str()), &streamReleaser);
+  }
+
   zorba::ItemSequence_t
     PrepareMainModuleFunction::evaluate(
       const Arguments_t& aArgs,
@@ -233,6 +343,8 @@ namespace zorba { namespace xqxq {
       const zorba::DynamicContext* aDctx) const 
   {
     DynamicContext* lDynCtx = const_cast<DynamicContext*>(aDctx);
+    StaticContext_t lSctxChild = aSctx->createChildContext();
+    StaticContext_t lMapperSctx = aSctx->createChildContext();
    
     QueryMap* lQueryMap;
     if(!(lQueryMap = dynamic_cast<QueryMap*>(lDynCtx->getExternalFunctionParameter("xqxqQueryMap"))))
@@ -247,9 +359,34 @@ namespace zorba { namespace xqxq {
     
     XQuery_t lQuery;
     
+    StaticContext_t ltempSctx = lZorba->createStaticContext();
+    XQXQURLResolver* lResolver = NULL;
+    XQXQURIMapper* lMapper = NULL;
+
+    if ( aArgs.size() > 2 )
+    {
+      Item lMapperFunctionItem = getItemArgument(aArgs, 2);
+      if (!lMapperFunctionItem.isNull())
+      {
+        lMapper = new XQXQURIMapper(lMapperFunctionItem, lSctxChild);
+        ltempSctx->registerURIMapper(lMapper);
+      }
+    }
+
+    if ( aArgs.size() > 1 )
+    {
+      Item lResolverFunctionItem = getItemArgument(aArgs, 1);
+      if (!lResolverFunctionItem.isNull())
+      {
+        lResolver = new XQXQURLResolver(lResolverFunctionItem, lSctxChild);
+        ltempSctx->registerURLResolver(lResolver);
+      }
+
+    }
+
     try
     {
-      lQuery = lZorba->compileQuery(lQueryString);
+      lQuery = lZorba->compileQuery(lQueryString, ltempSctx);
     }
     catch (XQueryException& xe)
     {
@@ -277,11 +414,17 @@ namespace zorba { namespace xqxq {
     lStream << lUUID;
 
     String lStrUUID = lStream.str();
+
+	lQueryMap->storeQuery(lStrUUID, lQuery);
     
-    lQueryMap->storeQuery(lStrUUID, lQuery);
+    if (lResolver)
+      delete lResolver;
+    if (lMapper)
+      delete lMapper;
 
     return ItemSequence_t(new SingletonItemSequence(XQXQModule::getItemFactory()->createAnyURI(lStrUUID)));
   }
+
 
   /*******************************************************************************************
   *******************************************************************************************/
