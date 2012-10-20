@@ -179,20 +179,39 @@ namespace zorba { namespace xqxq {
     String errDescription(aErrorMessage);
     throw USER_EXCEPTION(errQName, errDescription);
   }
-  
+
   /*******************************************************************************************
   *******************************************************************************************/
-  
+
+  QueryData::QueryData(XQuery_t aQuery, URIMapper *aMapper, URLResolver *aResolver)
+    : theQuery(aQuery),
+      theURIMapper(aMapper),
+      theURLResolver(aResolver)
+  {
+  }
+
+  QueryData::~QueryData()
+  {
+    theQuery->close();
+    delete theURIMapper;
+    delete theURLResolver;
+  }
+
+  /*******************************************************************************************
+  *******************************************************************************************/
+
   QueryMap::QueryMap()
   {
     QueryMap::queryMap = new QueryMap_t();
   }
 
   bool 
-    QueryMap::storeQuery(const String& aKeyName, XQuery_t aQuery)
+    QueryMap::storeQuery(const String& aKeyName, XQuery_t aQuery,
+                         URIMapper* aMapper, URLResolver* aResolver)
   {
+    QueryData_t lQueryData(new QueryData(aQuery, aMapper, aResolver));
     std::pair<QueryMap_t::iterator,bool> ret;
-    ret = queryMap->insert(std::pair<String, XQuery_t>(aKeyName, aQuery));
+    ret = queryMap->insert(std::pair<String, QueryData_t>(aKeyName, lQueryData));
     return ret.second;
   }
 
@@ -204,7 +223,7 @@ namespace zorba { namespace xqxq {
     if(lIter == queryMap->end())
       return NULL;
     
-    XQuery_t lQuery = lIter->second;
+    XQuery_t lQuery = lIter->second->getQuery();
 
     return lQuery;
   }
@@ -216,12 +235,25 @@ namespace zorba { namespace xqxq {
 
     if(lIter == queryMap->end())
       return false;
-    
-    lIter->second->close();
 
     queryMap->erase(lIter);
-
     return true;
+  }
+
+  void
+    QueryMap::destroy() throw()
+  {
+    if(queryMap)
+    {
+      for (QueryMap_t::const_iterator lIter = queryMap->begin();
+           lIter != queryMap->end(); ++lIter)
+      {
+        deleteQuery(lIter->first);
+      }
+      queryMap->clear();
+      delete queryMap;
+    }
+    delete this;
   }
 
   /*******************************************************************************************
@@ -344,7 +376,6 @@ namespace zorba { namespace xqxq {
   {
     DynamicContext* lDynCtx = const_cast<DynamicContext*>(aDctx);
     StaticContext_t lSctxChild = aSctx->createChildContext();
-    StaticContext_t lMapperSctx = aSctx->createChildContext();
    
     QueryMap* lQueryMap;
     if(!(lQueryMap = dynamic_cast<QueryMap*>(lDynCtx->getExternalFunctionParameter("xqxqQueryMap"))))
@@ -415,13 +446,8 @@ namespace zorba { namespace xqxq {
 
     String lStrUUID = lStream.str();
 
-	lQueryMap->storeQuery(lStrUUID, lQuery);
+    lQueryMap->storeQuery(lStrUUID, lQuery, lMapper, lResolver);
     
-    if (lResolver)
-      delete lResolver;
-    if (lMapper)
-      delete lMapper;
-
     return ItemSequence_t(new SingletonItemSequence(XQXQModule::getItemFactory()->createAnyURI(lStrUUID)));
   }
 
