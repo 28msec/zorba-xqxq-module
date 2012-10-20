@@ -391,16 +391,16 @@ namespace zorba { namespace xqxq {
     XQuery_t lQuery;
     
     StaticContext_t ltempSctx = lZorba->createStaticContext();
-    XQXQURLResolver* lResolver = NULL;
-    XQXQURIMapper* lMapper = NULL;
+    std::auto_ptr<XQXQURLResolver> lResolver;
+    std::auto_ptr<XQXQURIMapper> lMapper;
 
     if ( aArgs.size() > 2 )
     {
       Item lMapperFunctionItem = getItemArgument(aArgs, 2);
       if (!lMapperFunctionItem.isNull())
       {
-        lMapper = new XQXQURIMapper(lMapperFunctionItem, lSctxChild);
-        ltempSctx->registerURIMapper(lMapper);
+        lMapper.reset(new XQXQURIMapper(lMapperFunctionItem, lSctxChild));
+        ltempSctx->registerURIMapper(lMapper.get());
       }
     }
 
@@ -409,8 +409,8 @@ namespace zorba { namespace xqxq {
       Item lResolverFunctionItem = getItemArgument(aArgs, 1);
       if (!lResolverFunctionItem.isNull())
       {
-        lResolver = new XQXQURLResolver(lResolverFunctionItem, lSctxChild);
-        ltempSctx->registerURLResolver(lResolver);
+        lResolver.reset(new XQXQURLResolver(lResolverFunctionItem, lSctxChild));
+        ltempSctx->registerURLResolver(lResolver.get());
       }
 
     }
@@ -421,6 +421,7 @@ namespace zorba { namespace xqxq {
     }
     catch (XQueryException& xe)
     {
+      lQuery = NULL;
       std::ostringstream err;
       err << "The query compiled using xqxq:prepare-main-module raised an error at"
           << " line " << xe.source_line() << " column " << xe.source_column() << ": " << xe.what();
@@ -430,6 +431,7 @@ namespace zorba { namespace xqxq {
     }
     catch (ZorbaException& e)
     {
+      lQuery = NULL;
       std::ostringstream err;
       err << "The query compiled using xqxq:prepare-main-module raised an error: "
           << e.what();
@@ -437,7 +439,7 @@ namespace zorba { namespace xqxq {
           e.diagnostic().qname().ns(), e.diagnostic().qname().localname());
       throw USER_EXCEPTION(errQName, err.str());
     }
-    
+
     uuid lUUID;
     uuid::create(&lUUID);
     
@@ -446,7 +448,7 @@ namespace zorba { namespace xqxq {
 
     String lStrUUID = lStream.str();
 
-    lQueryMap->storeQuery(lStrUUID, lQuery, lMapper, lResolver);
+    lQueryMap->storeQuery(lStrUUID, lQuery, lMapper.release(), lResolver.release());
     
     return ItemSequence_t(new SingletonItemSequence(XQXQModule::getItemFactory()->createAnyURI(lStrUUID)));
   }
