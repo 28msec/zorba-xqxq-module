@@ -49,35 +49,39 @@ namespace zorba { namespace xqxq {
 
   };
 
-
-  class QueryMap : public ExternalFunctionParameter{
+  /**
+   * @brief Bag class for objects associated with a prepared query
+   */
+  class QueryData : public SmartObject
+  {
     private:
-      typedef std::map<String, XQuery_t> QueryMap_t;
+      XQuery_t theQuery;
+      URIMapper* theURIMapper;
+      URLResolver* theURLResolver;
+
+    public:
+      QueryData(XQuery_t aQuery, URIMapper* aMapper, URLResolver* aResolver);
+      virtual ~QueryData();
+      XQuery_t getQuery() { return theQuery; }
+  };
+  typedef SmartPtr<QueryData> QueryData_t;
+
+  class QueryMap : public ExternalFunctionParameter
+  {
+    private:
+      typedef std::map<String, QueryData_t> QueryMap_t;
       QueryMap_t* queryMap;
 
     public:
       QueryMap();
       bool 
-        storeQuery(const String&, XQuery_t);
+        storeQuery(const String&, XQuery_t, URIMapper*, URLResolver*);
       XQuery_t
         getQuery(const String&);
       bool 
         deleteQuery(const String&);
       virtual void 
-        destroy() throw()
-      {
-        if(queryMap)
-        {
-          for (QueryMap_t::const_iterator lIter = queryMap->begin();
-               lIter != queryMap->end(); ++lIter)
-          {
-            lIter->second->close();
-          }
-          queryMap->clear();
-          delete queryMap;
-        }
-        delete this;
-      };
+        destroy() throw();
   };
 
   class XQXQFunction : public ContextualExternalFunction
