@@ -374,14 +374,13 @@ namespace zorba { namespace xqxq {
       const zorba::StaticContext* aSctx,
       const zorba::DynamicContext* aDctx) const 
   {
-    DynamicContext* lDynCtx = const_cast<DynamicContext*>(aDctx);
     StaticContext_t lSctxChild = aSctx->createChildContext();
    
     QueryMap* lQueryMap;
-    if(!(lQueryMap = dynamic_cast<QueryMap*>(lDynCtx->getExternalFunctionParameter("xqxqQueryMap"))))
+    if(!(lQueryMap = dynamic_cast<QueryMap*>(aDctx->getExternalFunctionParameter("xqxqQueryMap"))))
     {
       lQueryMap = new QueryMap();
-      lDynCtx->addExternalFunctionParameter("xqxqQueryMap", lQueryMap);     
+      aDctx->addExternalFunctionParameter("xqxqQueryMap", lQueryMap);     
     }
 
     Zorba *lZorba = Zorba::getInstance(0);
